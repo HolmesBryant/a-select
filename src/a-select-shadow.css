@@ -1,0 +1,84 @@
+:host {
+	--height: 35px;
+	--background: linen;
+	--border-color: silver;
+	--border-radius: 10px;
+	--brightness: 1.25;
+	--cursor: pointer;
+	--text: rgb(40,40,40);
+	--pad: .5rem;
+
+	height: var(--height);
+}
+
+select {
+	border-radius: var(--border-radius);
+	cursor: var(--cursor);
+	height: var(--height);
+	width: 100%;
+}
+
+div[data-value] {
+	align-items: center;
+	background: var(--background);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--text);
+	cursor: var(--cursor);
+	display: flex;
+	gap: var(--pad);
+	height: var(--height);
+	justify-content: flex-start;
+	padding: 0 var(--pad);
+}
+
+div[data-value]:last-child
+{ border: none; }
+
+div[data-value]:hover,
+div[data-value]:focus {
+	filter: brightness(var(--brightness));
+}
+
+div[data-value] * {
+	height: var(--height);
+}
+
+select {
+	background: var(--background);
+	color: var(--text);
+}
+
+svg {
+	fill: var(--text);
+}
+
+#options {
+	width: 100%;
+	height: 0;
+	max-height: 0%;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	padding: 0;
+}
+
+#options.open {
+	height: max-content;
+	max-height: var(--max);
+	overflow-y: auto;
+}
+
+#wrapper {
+	background: var(--background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	position: relative;
+}
+
+@media (prefers-color-scheme: dark) {
+	:host {
+		--text: white;
+		--background: rgb(40,40,40);
+		--border-color: dimgray;
+		--brightness: 1.75;
+	}
+}

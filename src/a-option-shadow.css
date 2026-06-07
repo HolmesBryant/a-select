@@ -1,0 +1,33 @@
+:host {
+	--height: 35px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+	height: var(--height);
+}
+
+slot[name="icon"] {
+  width: var(--height);
+  height: var(--height);
+}
+
+::slotted(*) {
+	height: var(--height);
+}
+
+#wrapper {
+	align-items: center;
+	border-bottom: 1px solid var(--border-color);
+	box-sizing: border-box;
+	cursor: pointer;
+	display: flex;
+	gap: .5rem;
+	height: 100%;
+	padding: var(--pad);
+}
+
+#wrapper:hover {
+	background: var(--accent);
+	color: var(--accent-text);
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>a-select custom element</title>
+	<script type="module" src="src/a-select.js"></script>
+
+	<link rel="stylesheet" href="extra/styles.css">
+	<link rel="stylesheet" href="dist/a-select.css">
+
+	<style>
+
+	</style>
+</head>
+<body>
+	<header>
+		<h1>a-select custom element</h1>
+		<strong>The description</strong>
+		<p><a href="">Repo</a></p>
+
+		<details id="readme">
+			<summary>README</summary>
+			<a-markdown file="README.md"></a-markdown>
+		</details>
+	</header>
+
+	<!-- demo -->
+	<section class="flex space-around">
+			<a-menu type="mobile">
+				<b>Controls</b>
+			</a-menu>
+
+			<a-select active>
+				<option>No Icon</option>
+
+				<option value="img-url">
+					<img slot="icon" src="extra/sample.jpg">
+					Image URL
+				</option>
+
+				<option value="svg-url">
+					<img src="extra/address-book.svg">
+					SVG URL
+				</option>
+
+				<option value="svg-inline">
+					<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+					  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
+					</svg>
+					Inline SVG
+				</option>
+
+				<option value="unicode">
+					<b>☯</b>
+					Unicode Symbol
+				</option>
+			</a-select>
+	</section>
+
+	<!-- examples -->
+	<section>
+
+		<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+		  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45" fill="gold"/>
+		</svg>
+
+	</section>
+</body>
+</html>
