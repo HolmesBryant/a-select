@@ -11,13 +11,6 @@
 	height: var(--height);
 }
 
-select {
-	border-radius: var(--border-radius);
-	cursor: var(--cursor);
-	height: var(--height);
-	width: 100%;
-}
-
 div[data-value] {
 	align-items: center;
 	background: var(--background);
@@ -43,9 +36,26 @@ div[data-value] * {
 	height: var(--height);
 }
 
+div[data-selected] {
+	background: var(--accent-color);
+	color: var(--accent-text);
+}
+
+option {
+	align-items: center;
+	display: flex;
+	height: var(--height);
+	padding: 0 var(--pad);
+}
+
+
 select {
 	background: var(--background);
+	border-radius: var(--border-radius);
 	color: var(--text);
+	cursor: var(--cursor);
+	height: var(--height);
+	width: 100%;
 }
 
 svg {

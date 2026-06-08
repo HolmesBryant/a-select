@@ -12,37 +12,175 @@ import styles from './a-select-shadow.css' with {type: 'css'};
 const abindUpdate = Symbol.for('abind.update');
 
 export default class ASelect extends HTMLElement {
-	// --- Attributes ---
 
-  _autocomplete;
-  _autofocus;
-  _disabled;
+  // --- Attributes ---
+
+  /**
+   * @private
+   * @type {boolean}
+   */
+	_active = false;
+
+  /**
+   * @private
+   * @type { "" | "on" | "off" }
+   */
+  _autocomplete = "";
+
+  /**
+   * @private
+   * @type
+   */
+  _autofocus = false;
+
+  /**
+   * @private
+   * @type {boolean}
+   */
+  _disabled = false;
+
+  /**
+   * The id of the form element to associate with
+   * @private
+   * @type {string | undefined}
+   */
   _form;
+
+  /**
+   *
+   */
   _multiple = false;
-  _name;
+
+  /**
+   *
+   */
+  _name = 'a-select';
+
+  /**
+   *
+   */
   _required;
+
+  /**
+   *
+   */
   _size = 0;
 
-	_active = false;
-  _placeholder;
-	_value = '';
+  /**
+   *
+   */
+  _value = '';
 
-	// --- Properties ---
+  // --- Element Properties ---
 
+	/**
+   * A NodeList of labels associated with the element.
+   * @private
+   * @type {NodeList}
+   */
+  _labels;
+
+  /**
+   * The number of option elements
+   * @private
+   * @type {number}
+   */
+  _length;
+
+  /**
+   * A NodeList representing the set of options
+   * @private
+   * @type {NodeList}
+   */
+  _options;
+
+  /**
+   * A number reflecting the index of the first selected option.
+   * A value of -1 indicates no option is selected.
+   * @private
+   * @type {number}
+   */
   _selectedIndex;
+
+  /**
+   * An HTMLCollection representing the set of options that are selected.
+   * @private
+   * @type {HTMLCollection}
+   */
   _selectedOptions;
-  _type;
+
+  /**
+   * The select element's type
+   * @private
+   * @type {"select-one" | "select-multiple"}
+   */
+  _type = 'select-one';
+
+  /**
+   * A localized message that describes the validation constraints
+   * that the control does not satisfy (if any).
+   * It is the empty string if the control is not a candidate for constraint validation
+   * (willValidate is false), or it satisfies its constraints.
+   */
+  _validationMessage;
+
+  /**
+   * A ValidityState reflecting the validity state that this control is in.
+   * @private
+   * @type {ValidityState}
+   */
   _validity;
+
+  /**
+   * Indicates whether the element is a candidate for constraint validation.
+   * @private
+   * @type {boolean}
+   */
   _willValidate;
 
+  // --- Internal Properties ---
+
+  /**
+   * @private
+   * @type {AbortController}
+   */
   _abortController;
-  _select;
+
+  /**
+   * @private
+   * @type {FormAssociatedElement}
+   */
+  _internals;
+
+  /**
+   * @private
+   * @type {MutationObservee}
+   */
+  _observer;
+
+  /**
+   * @private
+   * @type {HTMLElement}
+   */
   _optionContainer;
+
+  /**
+   * @private
+   * @type {HTMLSelectElement}
+   */
+  _select;
 
 	// --- Static ---
 
+  static formAssociated = true;
+
 	static observedAttributes = [
     'active',
+    'autocomplete',
+    'autofocus',
+    'multiple',
+    'name',
+    'required',
     'value'
   ];
 
@@ -59,7 +197,8 @@ export default class ASelect extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow( {mode:'open'} );
+    this._internals = this.attachInternals();
+		this.attachShadow({ mode: 'open', delegatesFocus: true });
 		this.shadowRoot.adoptedStyleSheets = [styles];
 		this.shadowRoot.append(ASelect.template.content.cloneNode(true));
     this._select = this.shadowRoot.getElementById('select');
@@ -74,6 +213,63 @@ export default class ASelect extends HTMLElement {
     case 'active':
       this._active = this.hasAttribute('active');
       break;
+
+    case 'autocomplete':
+      const accept = ["", "on", "off"];
+      if (accept.includes(newval)) {
+        this._autocomplete = newval;
+        this._select.autocomplete = newval;
+      } else {
+        console.error(`a-select autocomplete must be one of ["", "on", "off"], value given was ${newval}`);
+      }
+      break;
+
+    case 'autofocus':
+      this._autofocus = this.hasAttribute('autofocus');
+      this._select.autofocus = this._autofocus;
+      break;
+
+    case 'disabled':
+      this._disabled = this.hasAttribute('disabled');
+      this._select.disabled = this._disabled;
+      break;
+
+    case 'form':
+      const form = document.getElementById(newval);
+      if (form) {
+        this._form = newval;
+        this._select.form = form;
+      } else {
+        console.error(`a-select.form: A form having id (${newval}) was not found.`);
+      }
+      break;
+
+    case 'multiple':
+      this._multiple = this.hasAttribute('multiple');
+      this._select.multiple = this._multiple;
+      this._type = this._select.type;
+      break;
+
+    case 'name':
+      this._name = newval;
+      this._select.name = newval;
+      break;
+
+    case 'required':
+      this._required = this.hasAttribute('required');
+      this._select.required = this._required;
+      break;
+
+    case 'size':
+      const size = parseInt(newval);
+      if (isNaN(size)) {
+        console.error(`a-select.size must be an integer. The value given was ${newval}`);
+      } else {
+        this._size = size;
+        this._select.size = size;
+      }
+      break;
+
     case 'value':
       newval = newval.split(',');
       this._setSelected(newval);
@@ -83,9 +279,19 @@ export default class ASelect extends HTMLElement {
 
 	connectedCallback() {
 		this._abortController = new AbortController();
-		this._value = this.getAttribute('value') || '';
     this._setOptions();
     this._addListeners();
+    this._setAttrs();
+
+    this._observer = new MutationObserver((mutationsList) => {
+      for (let mutation of mutationsList) {
+        if (mutation.type === 'childList') {
+          this._setOptions();
+        }
+      }
+    });
+
+    this._observer.observe(this, { childList: true });
     if (this._active) this.showPicker();
 	}
 
@@ -106,7 +312,8 @@ export default class ASelect extends HTMLElement {
 
     this._optionContainer.addEventListener('pointerdown', event => {
       const option = event.target.closest('div');
-      this._setSelected(option.dataset.value);
+      this._setSelected(option);
+      if (this._multiple) return;
       this._optionContainer.classList.remove('open');
     }, { signal:this._abortController.signal });
 
@@ -121,32 +328,54 @@ export default class ASelect extends HTMLElement {
   _setOptions() {
     const options = this.querySelectorAll('option');
     const div = document.createElement('div');
+    this._select.innerHTML = '';
+
     for (const opt of options) {
       const div_a = div.cloneNode();
       div_a.innerHTML = opt.innerHTML;
       div_a.dataset.value = opt.value || opt.textContent;
       opt.value = opt.value || opt.textContent;
       this._optionContainer.append(div_a);
-      this._select.append(opt);
+      this._select.append(opt.cloneNode);
     }
   }
 
-  _setSelected(value) {
-    const selected =
-      this._select.querySelector(`[value="${value}"]`);
-    if (selected) selected.selected = true;
+  _setAttrs() {
+    const attrs = ASelect.observedAttributes;
+    for (const idx in attrs) {
+      const prop = attrs[idx];
+      const value = this[prop];
+      this._select.setAttribute(prop, value);
+      console.log(prop, value)
+    }
+  }
+
+  _setSelected(option) {
+    const value = option.dataset.value;
+    const selected = this._select.querySelector(`[value="${value}"]`);
+    if (selected) {
+      selected.selected = !selected.selected;
+      option.toggleAttribute('data-selected', selected.selected);
+    }
+    this._internals.setFormValue(this._select.selectedOptions);
+
+    const stateSet = this._internals.states;
+    console.log(stateSet)
+    for (const state of stateSet.entries()) {
+      console.log(state)
+    }
   }
 
 
-  // --- Public ---
-
+  // --- Public Methods ---
 
   add(option, before) {
     if (typeof option === 'string') {
-      const newOption = document.createElement('a-option');
+      const newOption = document.createElement('option');
       newOption.text = option;
       option = newOption;
     }
+
     if (before instanceof HTMLElement && this.contains(before)) {
       this.insertBefore(option, before);
     } else if (!isNaN(before) && before >= 0 && before <= this.options.length) {
@@ -156,64 +385,103 @@ export default class ASelect extends HTMLElement {
     } else {
       this.appendChild(option);
     }
+
+    this._setOptions();
   }
 
-  checkValidity() {
-
-  }
+  checkValidity() {}
 
   item(index) {
     return this.options[index] || null;
   }
 
-  namedItem(name) {
-    for (const option of this.options) {
-      if (option.getAttribute('name') === name) {
-        return option;
-      }
-    }
-    return null;
-  }
+  namedItem(name) {}
 
-  remove(index) {
-    if (index >= 0 && index < this.options.length) {
-      this.removeChild(this.options[index]);
-    }
-  }
+  remove(index) {}
 
-  reportValidity() {
+  reportValidity() {}
 
-  }
+  setCustomValidity() {}
 
-  setCustomValidity() {
-
-  }
-
-  showPicker() {
-    this._optionContainer.classList.add('open');
-  }
+  showPicker() { this._optionContainer.classList.add('open'); }
 
   // --- Getters / Setters
 
-  get options() { return this.querySelectorAll('a-option') }
+  // --- attrs ---
+
+  get active() { return this._active }
+  set active(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('active', value);
+  }
+
+  get autocomplete() { return this._autocomplete }
+  set autocomplete(value) { this.setAttribute('autocomplete', value); }
+
+  get autofocus() { return this._autofocus }
+  set autofocus(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('autofocus', value);
+  }
+
+  get disabled() { return this._disabled }
+  set disabled(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('disabled', value);
+  }
+
+  get form() { return this._internals.form }
+  set form(value) { this.setAttribute('form', value) }
+
+  get multiple() { return this._multiple }
+  set multiple(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('multiple', value);
+  }
+
+  get name() { return this._name }
+  set name(value) { this.setAttribute('name', value) }
+
+  get required() { return this._required }
+  set required(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('required', value);
+  }
+
+  get size() { return this._size }
+  set size(value) { this.setAttribute('size', value) }
 
   get value() { return this._value }
   set value(value) { this.setAttribute('value', value) }
 
-  get selectedIndex() {
-    const options = Array.from(this.options);
-    const index = options.findIndex(option => option.selected);
-    return index >= 0 ? index : -1;
-  }
+  // --- properties ---
 
+  get labels() { return this._internals.labels }
+
+  get length() { return this._select.length }
+
+  get options() { return this.querySelectorAll('option') }
+
+  get selectedIndex() { return this._selectedIndex }
   set selectedIndex(value) {
-    if (value >= 0 && value < this.options.length) {
-      const option = this.options[value];
-      this.selectOption(option);
+    const idx = parseInt(value);
+    if (isNaN(idx)) {
+      console.log(`a-select.selectedIndex must be an integer, value given was ${value}`);
+      return;
     }
+    this._select.selectedIndex = idx;
+    this._selectedIndex = this._select.selectedIndex;
   }
 
-	// --- Getters/Setters ---
+  get selectedOptions() { return this._select.selectedOptions }
+
+  get type() { return this._type }
+
+  get validationMessage() { return this._select.validationMessage }
+
+  get validity() { return this._select.validity }
+
+  get willValidate() { return this._select.willValidate }
 }
 
 if (!customElements.get('a-select')) customElements.define('a-select', ASelect);

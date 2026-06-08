@@ -31,17 +31,17 @@
 				<b>Controls</b>
 			</a-menu>
 
-			<a-select active>
+			<a-select multiple active>
 				<option>No Icon</option>
 
-				<option value="img-url">
+				<option value="img">
 					<img slot="icon" src="extra/sample.jpg">
-					Image URL
+					Image
 				</option>
 
 				<option value="svg-url">
 					<img src="extra/address-book.svg">
-					SVG URL
+					Image(SVG)
 				</option>
 
 				<option value="svg-inline">
@@ -52,7 +52,7 @@
 				</option>
 
 				<option value="unicode">
-					<b>☯</b>
+					<b style="font-size:25px; line-height:1.2">☯</b>
 					Unicode Symbol
 				</option>
 			</a-select>
@@ -61,9 +61,10 @@
 	<!-- examples -->
 	<section>
 
-		<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-		  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45" fill="gold"/>
-		</svg>
+		<select id="test">
+			<option>foo</option>
+			<option>bar</option>
+		</select>
 
 	</section>
 </body>
