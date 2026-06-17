@@ -27,11 +27,22 @@
 
 	<!-- demo -->
 	<section class="flex space-around">
-			<a-menu type="mobile">
-				<b>Controls</b>
-			</a-menu>
+		<a-menu type="mobile">
+			<b>Controls</b>
+		</a-menu>
 
-			<a-select multiple active>
+		<!-- <form onsubmit="logFormData(event)">
+			<a-select multiple name="my-input" value="bar, boom">
+				<option>Foo</option>
+				<option value="bar">Bar</option>
+				<option>Baz</option>
+				<option value="boom">Boom</option>
+			</a-select>
+			<button>Submit</button>
+		</form> -->
+
+		<form onsubmit="logFormData(event)">
+			<a-select active>
 				<option>No Icon</option>
 
 				<option value="img">
@@ -56,16 +67,26 @@
 					Unicode Symbol
 				</option>
 			</a-select>
+			<button>Submit</button>
+		</form>
 	</section>
 
 	<!-- examples -->
 	<section>
 
-		<select id="test">
-			<option>foo</option>
-			<option>bar</option>
-		</select>
-
 	</section>
+
+	<script>
+		function logFormData(event) {
+			event.preventDefault();
+			const data = new FormData(event.target);
+
+			console.group('FormData');
+			for (const entry of data.entries()) {
+				console.log(entry)
+			}
+			console.groupEnd();
+		}
+	</script>
 </body>
 </html>

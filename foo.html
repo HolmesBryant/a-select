@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Foo</title>
+	<script>
+		class ASelect extends HTMLElement {
+  		_name = 'my-a-select';
+  		_value = '';
+
+  		_select;
+  		_slot;
+
+  		static formAssociated = true;
+  		static observedAttributes = ['name', 'value'];
+  		static template = document.createElement('template');
+  		static {
+  			this.template.innerHTML = `
+  				<style>
+  					:host { display: inline-block }
+  				</style>
+  				<select id="select"> </select>
+
+  				<slot hidden id="slot"></slot>
+  			`;
+  		}
+
+  		constructor() {
+  			super();
+  			this._internals = this.attachInternals();
+  			this._internals.name = this.name;
+  			this._internals.setFormValue(this.value);
+  			this.attachShadow( { mode: 'open' } );
+  			this.shadowRoot.append(ASelect.template.content.cloneNode(true));
+  			this._select = this.shadowRoot.getElementById('select');
+  			this._slot = this.shadowRoot.getElementById('slot');
+  		}
+
+  		attributeChangedCallback(attr, oldval, newval) {
+  			if (newval === oldval) return;
+  			switch (attr) {
+  			case 'name':
+  				this._name = newval;
+  				this._internals.name = newval;
+  				break;
+
+  			case 'value':
+  				this._value = newval;
+  				this._internals.setFormValue(newval);
+  				this._select.value = newval;
+  				break;
+  			}
+  		}
+
+  		connectedCallback() {
+  			this._slot.addEventListener('slotchange', () => {
+  				this._populateSelect();
+  			});
+
+  			this._select.addEventListener('change', () => {
+  				this.value = this._select.value;
+  			});
+  		}
+
+  		disconnectedCallback() {}
+
+  		_populateSelect() {
+  			const options = this.querySelectorAll('option');
+  			for (const option of options) {
+  				this._select.append(option);
+  			}
+  		}
+
+  		get name() { return this._name }
+  		set name(value) { this.setAttribute('name', value) }
+
+  		get value() { return this._value }
+  		set value(value) { this.setAttribute('value', value) }
+		}
+
+	customElements.define('a-select', ASelect);
+	</script>
+
+	<script>
+		function logFormData(event) {
+			event.preventDefault();
+			const data = new FormData(event.target);
+
+			/*console.group('Form Elements');
+			for ( const elem of event.target.elements) {
+				console.log(elem.localName, elem.name, elem.value);
+			}
+			console.groupEnd();*/
+
+			console.group('FormData');
+			for (const entry of data.entries()) {
+				console.log(entry)
+			}
+			console.groupEnd();
+		}
+	</script>
+</head>
+<body>
+	<h1>Foo</h1>
+	<form onsubmit="logFormData(event)">
+		<a-select name="my-input" value="bar">
+			<option>foo</option>
+			<option>bar</option>
+		</a-select>
+		<button>Submit</button>
+	</form>
+</body>
+</html>

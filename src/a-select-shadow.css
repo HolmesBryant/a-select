@@ -1,13 +1,16 @@
 :host {
-	--height: 35px;
 	--background: linen;
 	--border-color: silver;
-	--border-radius: 10px;
+	--border-radius: 5px;
 	--brightness: 1.25;
 	--cursor: pointer;
-	--text: rgb(40,40,40);
+	--height: 35px;
 	--pad: .5rem;
+	--text: rgb(40,40,40);
+	--transition-duration: .25s;
 
+	interpolate-size: allow-keywords;
+	display: inline-block;
 	height: var(--height);
 }
 
@@ -22,6 +25,7 @@ div[data-value] {
 	height: var(--height);
 	justify-content: flex-start;
 	padding: 0 var(--pad);
+	width: 100%;
 }
 
 div[data-value]:last-child
@@ -63,25 +67,28 @@ svg {
 }
 
 #options {
-	width: 100%;
-	height: 0;
-	max-height: 0%;
+	height: 0px;
 	overflow-x: hidden;
 	overflow-y: hidden;
 	padding: 0;
+	position: absolute;
+	transition: height var(--transition-duration);
+	width: 100%;
 }
 
 #options.open {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
 	height: max-content;
-	max-height: var(--max);
 	overflow-y: auto;
 }
 
 #wrapper {
 	background: var(--background);
-	border: 1px solid var(--border-color);
+	/* border: 1px solid var(--border-color); */
 	border-radius: var(--border-radius);
 	position: relative;
+	width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
