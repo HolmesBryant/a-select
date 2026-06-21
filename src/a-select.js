@@ -14,6 +14,7 @@ export default class ASelect extends HTMLElement {
   _active = false;
   _name;
   _multiple = false;
+  _size = 0;
   _value = [];
 
   _abortController;
@@ -28,6 +29,7 @@ export default class ASelect extends HTMLElement {
     'active',
     'name',
     'multiple',
+    'size',
     'value'
   ];
 
@@ -78,6 +80,17 @@ export default class ASelect extends HTMLElement {
       case 'multiple':
         this._multiple = this.hasAttribute('multiple');
         this._select.multiple = this._multiple;
+        this._optionContainer.toggleAttribute('data-multiple', this._multiple);
+        break;
+
+      case 'size':
+        const s = parseInt(newval);
+        if (isNaN(s)) {
+          console.error(`a-select.size must be a number; value given was ${newval}`);
+        } else {
+          this._size = s;
+          if (this._connected) this._setSize();
+        }
         break;
 
       case 'value':
@@ -90,8 +103,10 @@ export default class ASelect extends HTMLElement {
   connectedCallback() {
     this._abortController = new AbortController();
     if (!this._name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
+    if (this._multiple) this._select.tabIndex = "-1";
     this._setOptions();
     this._addListeners();
+    this._setSize();
     if (this._active) this.showPicker();
     this._connected = true;
   }
@@ -149,19 +164,23 @@ export default class ASelect extends HTMLElement {
     selected = selected || this._optionContainer.querySelector(`[data-value="${value}"]`);
 
     for (const option of this._select.options) {
-      option.selected = false;
-      console.log('before', option.selected, option)
       if (value === option.value && this._multiple) {
         option.selected = !option.selected;
         selected.toggleAttribute('data-selected', option.selected);
       } else if (value === option.value) {
         option.selected = true;
-        selected.toggleAttribute('data-selected', true);
       }
-      console.log('after', option.selected, option)
     }
 
     this._setValue();
+  }
+
+  _setSize() {
+    if (!this._multiple) return;
+    const optElem = this._optionContainer.children[0];
+    const size = optElem.scrollHeight * this._size + 'px';
+    this._optionContainer.style.height = size;
+    this.togglePicker();
   }
 
   _setValue() {
@@ -176,6 +195,14 @@ export default class ASelect extends HTMLElement {
       this._optionContainer.classList.add('open');
     } else {
       this._optionContainer.classList.remove('open');
+    }
+  }
+
+  togglePicker() {
+    if (this._size === 0) {
+      this.active = !this._active;
+    } else {
+      this.active = true;
     }
   }
 

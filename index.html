@@ -42,10 +42,17 @@
 		</form> -->
 
 		<form onsubmit="logFormData(event)">
-			<a-select active>
+			<a-select name="demo-one">
+				<option value="">Choose...</option>
+				<option>Foo</option>
+				<option>Bar</option>
+				<option>Baz</option>
+			</a-select>
+
+			<a-select multiple size="4">
 				<option>No Icon</option>
 
-				<option value="img">
+				<option>
 					<img slot="icon" src="extra/sample.jpg">
 					Image
 				</option>
@@ -73,7 +80,17 @@
 
 	<!-- examples -->
 	<section>
+		<select id="test" size=3>
+			<option>Aay</option>
+			<option>Bee</option>
+			<option>Sea</option>
+		</select>
 
+		<select id="test" multiple>
+			<option>One</option>
+			<option>Two</option>
+			<option>Three</option>
+		</select>
 	</section>
 
 	<script>

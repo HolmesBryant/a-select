@@ -1,8 +1,5 @@
 a-select {
-	/* cursor: pointer; */
 }
 
 a-select[active] {
-	/* overflow: auto; */
-	/* position: absolute; */
 }

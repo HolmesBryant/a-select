@@ -9,15 +9,16 @@
 	--text: rgb(40,40,40);
 	--transition-duration: .25s;
 
-	interpolate-size: allow-keywords;
 	display: inline-block;
-	height: var(--height);
+	interpolate-size: allow-keywords;
+	vertical-align: bottom;
 }
 
 div[data-value] {
 	align-items: center;
 	background: var(--background);
 	border-bottom: 1px solid var(--border-color);
+	box-sizing: border-box;
 	color: var(--text);
 	cursor: var(--cursor);
 	display: flex;
@@ -52,14 +53,22 @@ option {
 	padding: 0 var(--pad);
 }
 
-
 select {
 	background: var(--background);
 	border-radius: var(--border-radius);
 	color: var(--text);
 	cursor: var(--cursor);
-	height: var(--height);
-	width: 100%;
+	padding: var(--pad);
+}
+
+
+select[multiple] {
+	appearance: none;
+	height: 0;
+	border: none;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
 }
 
 svg {
@@ -71,15 +80,19 @@ svg {
 	overflow-x: hidden;
 	overflow-y: hidden;
 	padding: 0;
-	position: absolute;
 	transition: height var(--transition-duration);
-	width: 100%;
+}
+
+#options:not([data-multiple]) {
+	position: absolute;
+	width: max-content;
 }
 
 #options.open {
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius);
 	height: max-content;
+	min-height: var(--height);
 	overflow-y: auto;
 }
 
