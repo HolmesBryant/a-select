@@ -1,4 +1,6 @@
 :host {
+	--accent-color: dodgerblue;
+	--accent-text: white;
 	--background: linen;
 	--border-color: silver;
 	--border-radius: 5px;
@@ -32,6 +34,8 @@ div[data-value] {
 div[data-value]:last-child
 { border: none; }
 
+/* .focused, */
+div:focus,
 div[data-value]:hover,
 div[data-value]:focus {
 	filter: brightness(var(--brightness));
@@ -83,6 +87,10 @@ svg {
 	transition: height var(--transition-duration);
 }
 
+#options[data-multiple] {
+	border: 1px solid var(--border-color);
+}
+
 #options:not([data-multiple]) {
 	position: absolute;
 	width: max-content;
@@ -98,7 +106,6 @@ svg {
 
 #wrapper {
 	background: var(--background);
-	/* border: 1px solid var(--border-color); */
 	border-radius: var(--border-radius);
 	position: relative;
 	width: 100%;

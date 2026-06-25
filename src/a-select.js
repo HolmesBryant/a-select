@@ -12,6 +12,7 @@ const abindUpdate = Symbol.for('abind.update');
 
 export default class ASelect extends HTMLElement {
   _active = false;
+  _autocomplete = 'on';
   _name;
   _multiple = false;
   _size = 0;
@@ -19,7 +20,16 @@ export default class ASelect extends HTMLElement {
 
   _abortController;
   _connected = false;
+
+  /**
+   * Track focus index
+   * @private
+   * @type {number}
+   */
+  _idx = -1;
+  _items;
   _optionContainer;
+  _processing = false;
   _select;
   _slot;
 
@@ -27,6 +37,7 @@ export default class ASelect extends HTMLElement {
 
   static observedAttributes = [
     'active',
+    'autocomplete',
     'name',
     'multiple',
     'size',
@@ -72,6 +83,11 @@ export default class ASelect extends HTMLElement {
         this.showPicker(this._active);
         break;
 
+      case 'autocomplete':
+        this._autocomplete = newval;
+        this._select._autocomplete = newval;
+        break;
+
       case 'name':
         this._name = newval;
         this._internals.name = newval;
@@ -104,9 +120,7 @@ export default class ASelect extends HTMLElement {
     this._abortController = new AbortController();
     if (!this._name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
     if (this._multiple) this._select.tabIndex = "-1";
-    this._setOptions();
     this._addListeners();
-    this._setSize();
     if (this._active) this.showPicker();
     this._connected = true;
   }
@@ -124,6 +138,7 @@ export default class ASelect extends HTMLElement {
     const signal = this._abortController.signal;
 
     this._slot.addEventListener('slotchange', () => {
+      if (this.children.length === 0) return;
       this._populateSelect();
     }, { signal: signal });
 
@@ -138,26 +153,73 @@ export default class ASelect extends HTMLElement {
       if (this._multiple) return;
       this.active = false;
     }, { signal:this._abortController.signal });
+
+    this._optionContainer.addEventListener('keydown', event => {
+      this._handleKeyPress(event);
+    }, { signal:this._abortController.signal });
+
+    window.addEventListener('pointerdown', event => {
+      if (event.target.closest('a-select')) return;
+      if (!this._multiple && this._active) this.active = false;
+    });
+  }
+
+  _handleKeyPress(event) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this._moveFocus(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this._moveFocus(-1);
+    } else if (['Enter', ' '].includes(event.key)) {
+      e.preventDefault();
+      this._selectFocused();
+    } else {
+      console.log(event)
+    }
+  }
+
+  _highlight(i) {
+    const items = Array.from(this._optionContainer.children);
+    items.forEach((item, idx) => {
+      if (idx === i) {
+        item.focus();
+        item.classList.add('focused');
+        console.log('focused', item);
+      } else {
+        item.classList.remove('focused');
+      }
+    });
+  }
+
+  _moveFocus(offset) {
+    this._idx = (this._idx + offset + this._items.length) % this._items.length;
+    this._highlight(this._idx);
   }
 
   _populateSelect() {
-    const options = this.querySelectorAll('option');
-    for (const option of options) {
-      if (this._value.includes(option.value)) option.selected = true;
-      this._select.append(option);
-    }
+    this._items = Array.from(this.children);
+    this._items.forEach( item => {
+      if (this._value.includes(item.value)) item.selected = true;
+      this._select.append(item);
+    });
+
+    this._setOptions();
   }
 
   _setOptions() {
-    const options = this.querySelectorAll('option');
     const div = document.createElement('div');
+    this._optionContainer.innerHTML = "";
 
-    for (const opt of options) {
+    this._items.forEach( item => {
       const div_a = div.cloneNode();
-      div_a.innerHTML = opt.innerHTML;
-      div_a.dataset.value = opt.value;
+      div_a.innerHTML = item.innerHTML;
+      div_a.dataset.value = item.value;
+      // div_a.tabIndex = 0;
       this._optionContainer.append(div_a);
-    }
+    });
+
+    this._setSize();
   }
 
   _setSelected(value, selected) {
@@ -212,6 +274,16 @@ export default class ASelect extends HTMLElement {
   set active(value) {
     value = value != null && value !== false;
     this.toggleAttribute('active', value);
+  }
+
+  get _autocomplete() { return this._autocomplete }
+  set _autocomplete(value) {
+    const boolVal = value != null && value !== false;
+    if (typeof value === 'string') {
+      this.setAttribute('autocomplete', value);
+    } else {
+      this.toggleAttribute('autocomplete', boolVal);
+    }
   }
 
   get name() { return this._name }
