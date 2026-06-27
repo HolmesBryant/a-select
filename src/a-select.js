@@ -11,8 +11,20 @@ import styles from './a-select-shadow.css' with {type: 'css'};
 const abindUpdate = Symbol.for('abind.update');
 
 export default class ASelect extends HTMLElement {
+
   _active = false;
-  _autocomplete = 'on';
+  /**
+   * @private
+   * @type {boolean}
+   */
+  _autofocus = false;
+
+  /**
+   * @private
+   * @type {boolean}
+   */
+  _disabled = false;
+
   _name;
   _multiple = false;
   _size = 0;
@@ -37,7 +49,8 @@ export default class ASelect extends HTMLElement {
 
   static observedAttributes = [
     'active',
-    'autocomplete',
+    'autofocus',
+    'disabled',
     'name',
     'multiple',
     'size',
@@ -83,9 +96,22 @@ export default class ASelect extends HTMLElement {
         this.showPicker(this._active);
         break;
 
-      case 'autocomplete':
-        this._autocomplete = newval;
-        this._select._autocomplete = newval;
+      case 'autofocus':
+        this._autofocus = this.hasAttribute('autofocus');
+        if (this._autofocus && this._multiple) {
+          this._optionContainer.tabIndex = 0;
+          this._optionContainer.focus();
+        } else if (!this._autofocus && this._multiple) {
+          this._optionContainer.removeAttribute('tab-index');
+        } else if (this._autofocus) {
+          this._select.focus();
+        }
+        break;
+
+      case 'disabled':
+        this._disabled = this.hasAttribute('disabled');
+        this._select.disabled = this._disabled;
+        console.log(attr, this._select);
         break;
 
       case 'name':
@@ -144,10 +170,18 @@ export default class ASelect extends HTMLElement {
 
     this._select.addEventListener('pointerdown', event => {
       event.preventDefault();
+      if (this._disabled) return;
+      this._select.focus();
       this.active = !this._active;
     }, { signal: signal });
 
+    this._select.addEventListener('change', event => {
+      this._setValue();
+    });
+
     this._optionContainer.addEventListener('pointerdown', event => {
+      if (this._disabled) return;
+
       const option = event.target.closest('div');
       this._setSelected(option.dataset.value, option);
       if (this._multiple) return;
@@ -155,8 +189,16 @@ export default class ASelect extends HTMLElement {
     }, { signal:this._abortController.signal });
 
     this._optionContainer.addEventListener('keydown', event => {
+      if (this._disabled) return;
+
       this._handleKeyPress(event);
     }, { signal:this._abortController.signal });
+
+    if (!this._multiple) {
+      this._select.addEventListener('keydown', event => {
+        this._handleKeyPress(event);
+      }, { signal: this._abortController.signal });
+    }
 
     window.addEventListener('pointerdown', event => {
       if (event.target.closest('a-select')) return;
@@ -165,17 +207,17 @@ export default class ASelect extends HTMLElement {
   }
 
   _handleKeyPress(event) {
+    const items = (this._multiple) ? this._optionContainer.children : this._select.children;
+    const item = items[this._idx];
+    const value = item?.dataset.value || item?.value;
+
     if (event.key === 'ArrowDown') {
-      event.preventDefault();
       this._moveFocus(1);
     } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
       this._moveFocus(-1);
     } else if (['Enter', ' '].includes(event.key)) {
-      e.preventDefault();
-      this._selectFocused();
-    } else {
-      console.log(event)
+      event.preventDefault();
+      this._setSelected(value, item);
     }
   }
 
@@ -184,10 +226,8 @@ export default class ASelect extends HTMLElement {
     items.forEach((item, idx) => {
       if (idx === i) {
         item.focus();
-        item.classList.add('focused');
-        console.log('focused', item);
       } else {
-        item.classList.remove('focused');
+        item.blur()
       }
     });
   }
@@ -215,7 +255,7 @@ export default class ASelect extends HTMLElement {
       const div_a = div.cloneNode();
       div_a.innerHTML = item.innerHTML;
       div_a.dataset.value = item.value;
-      // div_a.tabIndex = 0;
+      if (this._multiple) div_a.tabIndex = 0;
       this._optionContainer.append(div_a);
     });
 
@@ -224,7 +264,6 @@ export default class ASelect extends HTMLElement {
 
   _setSelected(value, selected) {
     selected = selected || this._optionContainer.querySelector(`[data-value="${value}"]`);
-
     for (const option of this._select.options) {
       if (value === option.value && this._multiple) {
         option.selected = !option.selected;
@@ -276,14 +315,16 @@ export default class ASelect extends HTMLElement {
     this.toggleAttribute('active', value);
   }
 
-  get _autocomplete() { return this._autocomplete }
-  set _autocomplete(value) {
-    const boolVal = value != null && value !== false;
-    if (typeof value === 'string') {
-      this.setAttribute('autocomplete', value);
-    } else {
-      this.toggleAttribute('autocomplete', boolVal);
-    }
+  get autofocus() { return this._autofocus }
+  set autofocus(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('autofocus', value);
+  }
+
+  get disabled() { return this._disabled }
+  set disabled(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('disabled', value);
   }
 
   get name() { return this._name }

@@ -34,11 +34,18 @@ div[data-value] {
 div[data-value]:last-child
 { border: none; }
 
-/* .focused, */
+div:disabled,
+select:disabled {
+	cursor: not-allowed;
+}
+
 div:focus,
-div[data-value]:hover,
-div[data-value]:focus {
+div[data-value]:hover {
 	filter: brightness(var(--brightness));
+}
+
+div:focus-within {
+	outline: 1px solid white;
 }
 
 div[data-value] * {
