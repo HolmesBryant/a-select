@@ -12,8 +12,39 @@
 	--transition-duration: .25s;
 
 	display: inline-block;
+	position: relative;
 	interpolate-size: allow-keywords;
 	vertical-align: bottom;
+	z-index: 1000;
+}
+
+:host([disabled]) #overlay {
+	display: block;
+}
+
+:host([disabled]) div:focus {
+	filter: none;
+}
+
+:host([disabled]) div:focus-within {
+	outline: none;
+}
+
+:host([size]) #options:not([data-multiple]) {
+	position: static;
+}
+
+:host([size]) select {
+	appearance: none;
+	height: 0;
+	border: none;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+}
+
+:host(:not([size])) #options.open {
+	overflow-y: clip;
 }
 
 div[data-value] {
@@ -34,7 +65,6 @@ div[data-value] {
 div[data-value]:last-child
 { border: none; }
 
-div:disabled,
 select:disabled {
 	cursor: not-allowed;
 }
@@ -52,7 +82,7 @@ div[data-value] * {
 	height: var(--height);
 }
 
-div[data-selected] {
+div[aria-selected] {
 	background: var(--accent-color);
 	color: var(--accent-text);
 }
@@ -94,7 +124,8 @@ svg {
 	transition: height var(--transition-duration);
 }
 
-#options[data-multiple] {
+#options[data-multiple],
+ {
 	border: 1px solid var(--border-color);
 }
 
@@ -109,6 +140,17 @@ svg {
 	height: max-content;
 	min-height: var(--height);
 	overflow-y: auto;
+}
+
+#overlay {
+	background: rgba(0, 0, 0, 0.5);
+	cursor: not-allowed;
+	display: none;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
 }
 
 #wrapper {

@@ -11,26 +11,86 @@ import styles from './a-select-shadow.css' with {type: 'css'};
 const abindUpdate = Symbol.for('abind.update');
 
 export default class ASelect extends HTMLElement {
+  // --- Attributes ---
 
-  _active = false;
   /**
+   * Whether the option picker is visible
+   * @private
+   * @type {boolean}
+   */
+  _active = false;
+
+  /**
+   * Whether the element is focused on page load
    * @private
    * @type {boolean}
    */
   _autofocus = false;
 
   /**
+   * Whether the element is disabled
    * @private
    * @type {boolean}
    */
   _disabled = false;
 
+  /**
+   * The name of the element
+   * @private
+   * @type {boolean}
+   */
   _name;
+
+  /**
+   * The id of the form element to associate with
+   * @private
+   * @type {string | undefined}
+   */
+  _form;
+
+  /**
+   * Whether the element behaves like a select[multiple] element
+   * @private
+   * @type {boolean}
+   */
   _multiple = false;
-  _size = 0;
+
+  /**
+   * Whether a value is required
+   * @private
+   * @type {boolean}
+   */
+  _required = false;
+
+  /**
+   * How many options are visible on page load.
+   * Default is undefined for select single and 4 for select multiple.
+   * @private
+   * @type {number}
+   */
+  _size;
+
+  /**
+   * The value(s) sent when the associated form is submitted
+   * @private
+   * @type {string | array}
+   */
   _value = [];
 
+  // --- Properties ---
+
+  /**
+   * AbortController used by all event listeners
+   * @private
+   * @type {AbortController}
+   */
   _abortController;
+
+  /**
+   * Whether connectedCallback() has been run
+   * @private
+   * @type {boolean}
+   */
   _connected = false;
 
   /**
@@ -51,8 +111,10 @@ export default class ASelect extends HTMLElement {
     'active',
     'autofocus',
     'disabled',
+    'form',
     'name',
     'multiple',
+    'required',
     'size',
     'value'
   ];
@@ -67,6 +129,7 @@ export default class ASelect extends HTMLElement {
       <div id="wrapper">
         <select id="select"></select>
         <div id="options"></div>
+        <div id="overlay"></div>
       </div>
 
       <slot hidden id="slot"></slot>
@@ -111,12 +174,22 @@ export default class ASelect extends HTMLElement {
       case 'disabled':
         this._disabled = this.hasAttribute('disabled');
         this._select.disabled = this._disabled;
-        console.log(attr, this._select);
         break;
 
       case 'name':
         this._name = newval;
         this._internals.name = newval;
+        break;
+
+      case 'form':
+        const form = document.getElementById(newval);
+        if (!form || !(form instanceof HTMLFormElement)) {
+          console.error(`a-select.form - no form element with id "${newval}" was found.`, this);
+          return;
+        }
+
+        this._form = newval;
+        this._select.setAttribute('form', newval);
         break;
 
       case 'multiple':
@@ -125,10 +198,15 @@ export default class ASelect extends HTMLElement {
         this._optionContainer.toggleAttribute('data-multiple', this._multiple);
         break;
 
+      case 'required':
+        this._required = this.hasAttribute('required');
+        this._select.required = this._required;
+        break;
+
       case 'size':
         const s = parseInt(newval);
         if (isNaN(s)) {
-          console.error(`a-select.size must be a number; value given was ${newval}`);
+          console.error(`a-select.size must be a number; value given was ${newval}`, this);
         } else {
           this._size = s;
           if (this._connected) this._setSize();
@@ -146,9 +224,11 @@ export default class ASelect extends HTMLElement {
     this._abortController = new AbortController();
     if (!this._name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
     if (this._multiple) this._select.tabIndex = "-1";
+
     this._addListeners();
     if (this._active) this.showPicker();
     this._connected = true;
+    console.log(this._internals.validity, this)
   }
 
   disconnectedCallback() {
@@ -203,6 +283,12 @@ export default class ASelect extends HTMLElement {
     window.addEventListener('pointerdown', event => {
       if (event.target.closest('a-select')) return;
       if (!this._multiple && this._active) this.active = false;
+    });
+  }
+
+  _deselectOthers(selected) {
+    Array.from(this._optionContainer.children).map( item => {
+      if (item !== selected) item.removeAttribute('aria-selected');
     });
   }
 
@@ -265,11 +351,10 @@ export default class ASelect extends HTMLElement {
   _setSelected(value, selected) {
     selected = selected || this._optionContainer.querySelector(`[data-value="${value}"]`);
     for (const option of this._select.options) {
-      if (value === option.value && this._multiple) {
+      if (value === option.value) {
         option.selected = !option.selected;
-        selected.toggleAttribute('data-selected', option.selected);
-      } else if (value === option.value) {
-        option.selected = true;
+        selected.toggleAttribute('aria-selected', option.selected);
+        if (!this._multiple) this._deselectOthers(selected);
       }
     }
 
@@ -277,14 +362,15 @@ export default class ASelect extends HTMLElement {
   }
 
   _setSize() {
-    if (!this._multiple) return;
+    if (!this._multiple && !this._size) return;
     const optElem = this._optionContainer.children[0];
-    const size = optElem.scrollHeight * this._size + 'px';
+    const size = (optElem.scrollHeight + 1) * this._size + 'px';
     this._optionContainer.style.height = size;
     this.togglePicker();
   }
 
   _setValue() {
+    if (this._disabled) return;
     this._value = Array.from(this._select.selectedOptions).map( o => o.value);
     this._internals.setFormValue(this._value);
   }
@@ -327,6 +413,9 @@ export default class ASelect extends HTMLElement {
     this.toggleAttribute('disabled', value);
   }
 
+  get form() { return this._form }
+  set form(value) { this.setAttribute('form', value) }
+
   get name() { return this._name }
   set name(value) { this.setAttribute('name', value) }
 
@@ -334,6 +423,23 @@ export default class ASelect extends HTMLElement {
   set multiple(value) {
     value = value != null && value !== false;
     this.toggleAttribute('multiple', value);
+  }
+
+  get required() { return this._required }
+  set required(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('required', value);
+  }
+
+  get size() { return this._size }
+  set size(value) {
+    const nan = isNaN(parseInt(value));
+    if (nan) {
+      console.error(`a-select.size must be a number. Value given was ${value}`, this);
+      return;
+    }
+
+    this.setAttribute('size', value);
   }
 
   get value() { return this._value }

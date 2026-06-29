@@ -31,15 +31,15 @@
 			<b>Controls</b>
 		</a-menu>
 
-		<form onsubmit="logFormData(event)">
-			<a-select name="demo1" id="demo1" disabled>
+		<div id="demo-selects">
+			<a-select required id="demo-single" form="demo-form-one">
 				<option value="">Choose...</option>
 				<option>Foo</option>
 				<option>Bar</option>
 				<option>Baz</option>
 			</a-select>
 
-			<a-select multiple size="4" id="demo2">
+			<a-select required multiple id="demo-multi" form="demo-form-two">
 				<option>No Icon</option>
 
 				<option>
@@ -64,40 +64,53 @@
 					Unicode Symbol
 				</option>
 			</a-select>
-			<button>Submit</button>
-		</form>
+		</div>
+
+		<div id="demo-forms">
+			<form id="demo-form-one" onsubmit="logFormData(event)">
+				<button>Form One Submit</button>
+			</form>
+
+			<form id="demo-form-two" onsubmit="logFormData(event)">
+				<button>Form Two Submit</button>
+			</form>
+		</div>
 	</section>
 
 	<!-- examples -->
 	<section>
 		<h2>Examples</h2>
 
-		<select id="test">
-			<option>Aay</option>
-			<option>Bee</option>
-			<option>Sea</option>
-			<option>Seb</option>
-			<option>Sec</option>
-			<option>Sed</option>
-			<option>Sef</option>
-			<option>Seg</option>
-			<option>Seh</option>
-			<option>Sei</option>
-			<option>Sej</option>
-			<option>Sek</option>
-			<option>Sel</option>
-			<option>Sem</option>
-			<option>Sen</option>
-			<option>Boom</option>
-		</select>
+		<form onsubmit="logFormData(event)">
+			<select required id="test" size="4">
+				<option value="">Select...</option>
+				<option>Aay</option>
+				<option>Bee</option>
+				<option>Sea</option>
+				<option>Seb</option>
+				<option>Sec</option>
+				<option>Sed</option>
+				<option>Sef</option>
+				<option>Seg</option>
+				<option>Seh</option>
+				<option>Sei</option>
+				<option>Sej</option>
+				<option>Sek</option>
+				<option>Sel</option>
+				<option>Sem</option>
+				<option>Sen</option>
+				<option>Boom</option>
+			</select>
 
-		<select id="test" multiple>
-			<option>One</option>
-			<option>Two</option>
-			<option>Three</option>
-		</select>
+			<select id="test" multiple disabled>
+				<option>One</option>
+				<option>Two</option>
+				<option>Three</option>
+			</select>
 
-		<input id="ssgdg">
+			<input id="ssgdg">
+			<button>OK</button>
+		</form>
 	</section>
 
 	<script>
@@ -105,7 +118,7 @@
 			event.preventDefault();
 			const data = new FormData(event.target);
 
-			console.group('FormData');
+			console.group(`Form: ${event.target.id}`);
 			for (const entry of data.entries()) {
 				console.log(entry)
 			}
