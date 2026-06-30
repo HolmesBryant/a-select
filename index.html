@@ -5,9 +5,12 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>a-select custom element</title>
 	<script type="module" src="src/a-select.js"></script>
+	<script type="module" src="extra/a-bind.min.js"></script>
+	<script type="module" src="extra/a-menu.min.js"></script>
 
 	<link rel="stylesheet" href="extra/styles.css">
 	<link rel="stylesheet" href="dist/a-select.css">
+	<link rel="stylesheet" href="extra/a-menu.css">
 
 	<style>
 
@@ -26,45 +29,150 @@
 	</header>
 
 	<!-- demo -->
-	<section class="flex space-around">
-		<a-menu type="mobile">
-			<b>Controls</b>
-		</a-menu>
+	<section class="flex top space-between">
+		<a-bindgroup model="dom:#demo" class="flex240">
+			<a-menu
+				open
+				type="mobile"
+				show-icon=""
+				>
+				<a-menu open group="demo-menu">
+					<b slot="label">Attributes</b>
+					<div class="flex">
+						<a-bind
+							prop="active"
+							elem-prop="checked">
 
-		<div id="demo-selects">
-			<a-select required id="demo-single" form="demo-form-one">
-				<option value="">Choose...</option>
-				<option>Foo</option>
-				<option>Bar</option>
-				<option>Baz</option>
-			</a-select>
+							<input type="checkbox" id="demo-active">
+						</a-bind>
 
-			<a-select required multiple id="demo-multi" form="demo-form-two">
-				<option>No Icon</option>
+						<label for="demo-active">
+							active
+						</label>
+					</div>
 
-				<option>
-					<img slot="icon" src="extra/sample.jpg">
-					Image
-				</option>
+			    <div class="flex">
+			    	<a-bind
+			    		prop="autofocus"
+			    		elem-prop="checked">
 
-				<option value="svg-url">
-					<img src="extra/address-book.svg">
-					Image(SVG)
-				</option>
+				    	<input type="checkbox" id="demo-autofocus">
+				    </a-bind>
 
-				<option value="svg-inline">
-					<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-					  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
-					</svg>
-					Inline SVG
-				</option>
+			    	<label for="demo-autofocus">
+			    		autofocus
+			    	</label>
+			    </div>
 
-				<option value="unicode">
-					<b style="font-size:25px; line-height:1.2">☯</b>
-					Unicode Symbol
-				</option>
-			</a-select>
-		</div>
+			    <div class="flex">
+			    	<a-bind
+			    		prop="disabled"
+			    		elem-prop="checked">
+
+			    		<input type="checkbox" id="demo-disabled">
+			    	</a-bind>
+
+			    	<label for="demo-disabled">
+			    		disabled
+			    	</label>
+		    	</div>
+
+			    <div class="flex">
+			    	<a-bind
+			    		prop="multiple"
+			    		elem-prop="checked">
+
+				    	<input type="checkbox" id="demo-multiple">
+				    </a-bind>
+
+			    	<label for="demo-multiple">
+			    		multiple
+			    	</label>
+			    </div>
+
+			    <div class="flex">
+			    	<a-bind
+			    		prop="required"
+			    		elem-prop="checked">
+
+				    	<input type="checkbox" id="demo-required">
+				    </a-bind>
+
+			    	<label for="demo-required">
+			    		required
+			    	</label>
+			    </div>
+
+			    <div class="flex">
+			    	<label for="demo-value">
+			    		value
+			    	</label>
+			    	<input id="demo-value" list="demo-value-list">
+			    	<datalist id="demo-value-list">
+			    	</datalist>
+			    </div>
+
+			    <div class="flex">
+			    	<label for="demo-size">
+			    		size
+			    	</label>
+			    	<input type="number" id="demo-size" step="1">
+			    </div>
+
+			    <div class="flex">
+			    	<label for="demo-name">
+				    	name
+				    </label>
+				    <input id="demo-name">
+			    </div>
+
+			    <div class="flex">
+			    	<label for="demo-form">
+			    		form
+			    	</label>
+
+			    	<select id="demo-form">
+			    		<option selected>demo-form-one</option>
+			    		<option>demo-form-two</option>
+			    	</select>
+			    </div>
+				</a-menu>
+
+				<a-menu group="demo-menu">
+					<b slot="label">Properties</b>
+				</a-menu>
+
+				<a-menu group="demo-menu">
+					<b slot="label">CSS Variables</b>
+				</a-menu>
+			</a-menu>
+		</a-bindgroup>
+
+		<a-select id="demo">
+			<option>No Icon</option>
+
+			<option>
+				<img slot="icon" src="extra/sample.jpg">
+				Image
+			</option>
+
+			<option disabled value="svg-url">
+				<img src="extra/address-book.svg">
+				Image(SVG)
+			</option>
+
+			<option value="svg-inline">
+				<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+				  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
+				</svg>
+				Inline SVG
+			</option>
+
+			<option value="unicode">
+				<b style="font-size:25px; line-height:1.2">☯</b>
+				Unicode Symbol
+			</option>
+		</a-select>
 
 		<div id="demo-forms">
 			<form id="demo-form-one" onsubmit="logFormData(event)">

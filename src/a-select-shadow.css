@@ -70,7 +70,7 @@ select:disabled {
 }
 
 div:focus,
-div[data-value]:hover {
+div[data-value]:not([disabled]):hover {
 	filter: brightness(var(--brightness));
 }
 
@@ -82,9 +82,25 @@ div[data-value] * {
 	height: var(--height);
 }
 
+div[selected],
 div[aria-selected] {
 	background: var(--accent-color);
 	color: var(--accent-text);
+}
+
+div[disabled] {
+	position: relative;
+	cursor: not-allowed;
+}
+
+div[disabled]::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: rgba(0, 0, 0, 0.5);
 }
 
 option {

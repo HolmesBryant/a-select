@@ -77,7 +77,7 @@ export default class ASelect extends HTMLElement {
    */
   _value = [];
 
-  // --- Properties ---
+  // --- Private Properties ---
 
   /**
    * AbortController used by all event listeners
@@ -99,11 +99,13 @@ export default class ASelect extends HTMLElement {
    * @type {number}
    */
   _idx = -1;
-  _items;
+  _items = [];
   _optionContainer;
   _processing = false;
   _select;
   _slot;
+
+  // --- Public Properties
 
   static formAssociated = true;
 
@@ -156,7 +158,8 @@ export default class ASelect extends HTMLElement {
     switch (attr) {
       case 'active':
         this._active = this.hasAttribute('active');
-        this.showPicker(this._active);
+        // console.log(this._active)
+        // this._showPicker(this._active);
         break;
 
       case 'autofocus':
@@ -218,17 +221,21 @@ export default class ASelect extends HTMLElement {
         if (this._connected) this._setSelected(this._value);
         break;
     }
+
+    globalThis[abindUpdate]?.(this, attr, this[attr]);
   }
 
   connectedCallback() {
     this._abortController = new AbortController();
     if (!this._name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
-    if (this._multiple) this._select.tabIndex = "-1";
+    if (this._multiple) {
+      this._select.tabIndex = "-1";
+      this.active = true;
+    }
 
     this._addListeners();
-    if (this._active) this.showPicker();
+    if (this._active) this._showPicker();
     this._connected = true;
-    console.log(this._internals.validity, this)
   }
 
   disconnectedCallback() {
@@ -263,6 +270,7 @@ export default class ASelect extends HTMLElement {
       if (this._disabled) return;
 
       const option = event.target.closest('div');
+      if (option.hasAttribute('disabled')) return;
       this._setSelected(option.dataset.value, option);
       if (this._multiple) return;
       this.active = false;
@@ -291,6 +299,28 @@ export default class ASelect extends HTMLElement {
       if (item !== selected) item.removeAttribute('aria-selected');
     });
   }
+
+  _getInvalidStates() {
+    const results = {};
+    const errNames = [
+      'badInput',
+      'customError',
+      'patternMismatch',
+      'rangeOverflow',
+      'rangeUnderflow',
+      'stepMismatch',
+      'tooLong',
+      'tooShort',
+      'typeMismatch',
+      'valueMissing'
+    ]
+
+    errNames.forEach( name => {
+      if (this._select.validity[name]) results[name] = this._select.validity[name];
+    });
+
+    return results;
+};
 
   _handleKeyPress(event) {
     const items = (this._multiple) ? this._optionContainer.children : this._select.children;
@@ -324,12 +354,14 @@ export default class ASelect extends HTMLElement {
   }
 
   _populateSelect() {
-    this._items = Array.from(this.children);
+    this._items = Array.from(this.children) || Array.from(this._optionContainer.children);
     this._items.forEach( item => {
       if (this._value.includes(item.value)) item.selected = true;
       this._select.append(item);
     });
 
+    this._setValue();
+    this._setValidity(this._getInvalidStates());
     this._setOptions();
   }
 
@@ -341,6 +373,9 @@ export default class ASelect extends HTMLElement {
       const div_a = div.cloneNode();
       div_a.innerHTML = item.innerHTML;
       div_a.dataset.value = item.value;
+      for (const attr of item.attributes) {
+        div_a.setAttribute(attr.name, attr.value);
+      }
       if (this._multiple) div_a.tabIndex = 0;
       this._optionContainer.append(div_a);
     });
@@ -358,6 +393,7 @@ export default class ASelect extends HTMLElement {
       }
     }
 
+
     this._setValue();
   }
 
@@ -366,18 +402,20 @@ export default class ASelect extends HTMLElement {
     const optElem = this._optionContainer.children[0];
     const size = (optElem.scrollHeight + 1) * this._size + 'px';
     this._optionContainer.style.height = size;
-    this.togglePicker();
+  }
+
+  _setValidity(flags = {}) {
+    this._internals.setValidity(flags, this._select.validationMessage, this);
   }
 
   _setValue() {
     if (this._disabled) return;
     this._value = Array.from(this._select.selectedOptions).map( o => o.value);
     this._internals.setFormValue(this._value);
+    this._setValidity(this._getInvalidStates());
   }
 
-  // --- Public Methods ---
-
-  showPicker(open = true) {
+  _showPicker(open = true) {
     if (open) {
       this._optionContainer.classList.add('open');
     } else {
@@ -385,11 +423,67 @@ export default class ASelect extends HTMLElement {
     }
   }
 
-  togglePicker() {
-    if (this._size === 0) {
-      this.active = !this._active;
-    } else {
-      this.active = true;
+  // --- Public Methods ---
+
+  add(option, before) {
+    const options = this._optionContainer;
+    try {
+      if (typeof option === 'string') {
+        const newOption = document.createElement('option');
+        newOption.text = option;
+        option = newOption;
+      }
+
+      if (before instanceof HTMLElement && options.contains(before)) {
+        options.insertBefore(option, before);
+      } else if (!isNaN(before) && before >= 0 && before <= options.children.length) {
+        const index = Math.min(before, options.children.length - 1);
+        const referenceNode = index < options.children.length ? options[index] : null;
+        options.insertBefore(option, referenceNode);
+      } else {
+        options.appendChild(option);
+      }
+
+      this._setOptions();
+    } catch (error) {
+      console.group('a-select.add()');
+      console.error(error);
+      console.log('Instance', this);
+      console.log('Params', {option: option, before: before});
+      console.groupEnd();
+    }
+  }
+
+  checkValidity() {
+    return this._select.checkValidity();
+  }
+
+  item(index) {
+    return this._optionContainer.children.item(index);
+  }
+
+  namedItem(name) {
+    return this._optionContainer.children.namedItem(name);
+  }
+
+  remove(index) {
+    const item = this._optionContainer.children[index];
+    item.remove();
+    this._populateSelect();
+    return item;
+  }
+
+  reportValidity() {
+    return this._select.reportValidity();
+  }
+
+  setCustomValidity(str) {
+    try {
+      this._select.setCustomValidity(str);
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
     }
   }
 
@@ -399,6 +493,7 @@ export default class ASelect extends HTMLElement {
   set active(value) {
     value = value != null && value !== false;
     this.toggleAttribute('active', value);
+    // console.trace('active', this.hasAttribute('active'))
   }
 
   get autofocus() { return this._autofocus }
@@ -424,6 +519,8 @@ export default class ASelect extends HTMLElement {
     value = value != null && value !== false;
     this.toggleAttribute('multiple', value);
   }
+
+  get options() { return this._select.options }
 
   get required() { return this._required }
   set required(value) {

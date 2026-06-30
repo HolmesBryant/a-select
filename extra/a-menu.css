@@ -1,0 +1,147 @@
+/***************************************************
+	@file a-menu.css
+	Theming Styles for a-menu
+	Available parts (these map to elements in shadow dom):
+	::part(menu) - the details element
+	::part(summary) - the summary element
+	::part(label-wrapper) - (child of summary) contains icon and label
+	::part(items) - div containing the menu items
+****************************************************/
+
+/* Please test thoroughly if you move these variables out of :root */
+:root {
+	--amenu-background: linen;
+	--amenu-text: rgb(60,60,60);
+	--amenu-border: silver;
+	--amenu-accent: orange;
+	--amenu-accent-text: snow;
+	--amenu-shadow: dimgray;
+
+	/* minimum height of elements */
+	--amenu-min: 35px;
+
+	/* left/right padding of menu items */
+	/* also affects the left margin of items in 'sitemap' menu*/
+	--amenu-pad: .5rem;
+
+	/* transition duration */
+  --amenu-duration: 400ms;
+
+	/* Set flex on slotted items.
+		Useful values are 0 and 1.
+		Only affects 'classic' and 'shingle' menus.
+		Overrides --amenu-justify */
+	--amenu-flex: 0;
+
+	/* sets justify-content.
+		Only affects 'classic' and 'shingle' menus. */
+	--amenu-justify: center;
+}
+
+/***** @Media *****/
+
+/* For users who prefer dark theme */
+@media (prefers-color-scheme: dark) {
+	:root {
+    --amenu-background: rgb(40, 40, 40);
+		--amenu-border: dimgray;
+		--amenu-text: snow;
+		--amenu-shadow: black;
+	}
+}
+
+/* prevent FOUC */
+a-menu:not(:defined) {
+  display: inline-block;
+  visibility: hidden;
+  min-height: var(--amenu-min);
+  min-width: var(--amenu-min);
+}
+
+a-menu {
+
+/***** Background *****/
+
+	&:not([top]) { background: var(--amenu-background) }
+
+	& a,
+	& div,
+	& ::part(summary)
+	{ background: var(--amenu-background) }
+
+	&[open]:not([type="sitemap"])::part(summary),
+	&::part(summary):active
+	{ background: var(--amenu-accent) }
+
+	& a:hover,
+	& a:focus,
+	&::part(summary):hover
+	{ filter: brightness(1.25) }
+
+/***** Border *****/
+
+	&:not([top]):not([type="shingle"]):not([type="sitemap"]) > *:not([slot="label"]):not([slot="icon"])
+	{ border-left: 4px solid var(--amenu-accent) }
+
+	&:not([type="sitemap"]) > *:not([slot="label"]):not([slot="icon"])
+	{ border: 1px solid var(--amenu-border) }
+
+/***** Text *****/
+
+	& a,
+	& div,
+	& ::part(summary)
+	{ color: var(--amenu-text) }
+
+	&[open]:not([type="sitemap"])::part(summary),
+	&::part(summary):active
+	{ color: var(--amenu-accent-text) }
+
+	& a:active
+	{ color: var(--amenu-accent) }
+
+	a
+	{ text-decoration: none }
+
+	& a:hover
+	{ text-decoration: underline }
+
+	& [slot="icon"]
+	{ font-size: var(--amenu-min) }
+
+	&[type="sitemap"] a {
+		font-weight: normal;
+		text-decoration: underline;
+	}
+
+/***** Shadows *****/
+
+	&[top]::part(items)
+	{ box-shadow: none }
+
+	&[type="shingle"]:not([top])[open] > *,
+	&[open]:not([type="classic"], [type="sitemap"], [type="shingle"])::part(items)
+	{ box-shadow: 2px 2px 4px var(--amenu-shadow) }
+
+/***** Misc *****/
+
+	&[top] { width: 100%; }
+
+	& a,
+	& [slot="label"]
+	{ padding: 0 var(--amenu-pad) }
+
+	& div { padding: var(--amenu-pad) }
+
+	&::part(summary)
+	{ padding-left: var(--amenu-pad) }
+
+	&::part(icon)
+	{ padding-right: var(--amenu-pad) }
+
+	&[type="sitemap"] > *
+	{ padding: 0 }
+
+	&:is([type="classic"], [type="shingle"]) > *
+	{ justify-content: center }
+} /* end a-menu */
