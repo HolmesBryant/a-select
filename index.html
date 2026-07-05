@@ -13,7 +13,7 @@
 	<link rel="stylesheet" href="extra/a-menu.css">
 
 	<style>
-
+		a-bind { display: contents; }
 	</style>
 </head>
 <body>
@@ -38,6 +38,7 @@
 				>
 				<a-menu open group="demo-menu">
 					<b slot="label">Attributes</b>
+					<!-- active -->
 					<div class="flex">
 						<a-bind
 							prop="active"
@@ -51,6 +52,7 @@
 						</label>
 					</div>
 
+					<!-- autofocus -->
 			    <div class="flex">
 			    	<a-bind
 			    		prop="autofocus"
@@ -64,6 +66,7 @@
 			    	</label>
 			    </div>
 
+			    <!-- disabled -->
 			    <div class="flex">
 			    	<a-bind
 			    		prop="disabled"
@@ -77,6 +80,7 @@
 			    	</label>
 		    	</div>
 
+		    	<!-- multiple -->
 			    <div class="flex">
 			    	<a-bind
 			    		prop="multiple"
@@ -90,6 +94,7 @@
 			    	</label>
 			    </div>
 
+			    <!-- required -->
 			    <div class="flex">
 			    	<a-bind
 			    		prop="required"
@@ -103,39 +108,65 @@
 			    	</label>
 			    </div>
 
-			    <div class="flex">
-			    	<label for="demo-value">
-			    		value
-			    	</label>
-			    	<input id="demo-value" list="demo-value-list">
+			    <!-- value -->
+			    <div class="flex space-between">
+			    	<label for="demo-value"> value </label>
+
+			    	<a-bind prop="value">
+				    	<input id="demo-value" list="demo-value-list">
+				    </a-bind>
+
 			    	<datalist id="demo-value-list">
 			    	</datalist>
+
+			    	<a-repeat target="dom:#demo-value-list" prop="values">
+			    		<template>
+			    			<option>{{item}}</option>
+			    		</template>
+			    	</a-repeat>
 			    </div>
 
-			    <div class="flex">
-			    	<label for="demo-size">
-			    		size
-			    	</label>
-			    	<input type="number" id="demo-size" step="1">
+			    <!-- size -->
+			    <div class="flex space-between">
+			    	<label for="demo-size"> size </label>
+
+			    	<a-bind prop="size">
+				    	<input type="number" id="demo-size" step="1" min="0">
+				    </a-bind>
 			    </div>
 
-			    <div class="flex">
-			    	<label for="demo-name">
-				    	name
-				    </label>
-				    <input id="demo-name">
+			    <!-- name -->
+			    <div class="flex space-between">
+			    	<label for="demo-name"> name </label>
+
+			    	<a-bind prop="name">
+					    <input id="demo-name">
+					  </a-bind>
 			    </div>
 
-			    <div class="flex">
-			    	<label for="demo-form">
-			    		form
-			    	</label>
+			    <!-- form -->
+			    <div class="flex column">
+				    <div class="flex flex100 space-between">
+				    	<label for="demo-form">form</label>
 
-			    	<select id="demo-form">
-			    		<option selected>demo-form-one</option>
-			    		<option>demo-form-two</option>
-			    	</select>
-			    </div>
+				    	<a-bind prop="form">
+					    	<select id="demo-form">
+					    		<option value="demo-form-one">Form One</option>
+					    		<option value="demo-form-two">Form Two</option>
+					    	</select>
+					    </a-bind>
+				    </div>
+
+				  	<div id="demo-forms" class="flex">
+							<form id="demo-form-one" name="Form One" onsubmit="logFormData(event)">
+								<button>Form One</button>
+							</form>
+
+							<form id="demo-form-two" name="Form Two" onsubmit="logFormData(event)">
+								<button>Form Two</button>
+							</form>
+						</div>
+				  </div>
 				</a-menu>
 
 				<a-menu group="demo-menu">
@@ -148,40 +179,43 @@
 			</a-menu>
 		</a-bindgroup>
 
-		<a-select id="demo">
-			<option>No Icon</option>
+		<div class="flex flex1 column gap4">
+			<!-- A-Select -->
+			<a-select
+				multiple
+				id="demo"
+				name="a-select-demo"
+				value="svg-inline"
+				form="demo-form-one">
+				<option value="">Select...</option>
 
-			<option>
-				<img slot="icon" src="extra/sample.jpg">
-				Image
-			</option>
+				<option>No Icon</option>
 
-			<option disabled value="svg-url">
-				<img src="extra/address-book.svg">
-				Image(SVG)
-			</option>
+				<option>
+					<img slot="icon" src="extra/sample.jpg">
+					Image
+				</option>
 
-			<option value="svg-inline">
-				<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-				  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
-				</svg>
-				Inline SVG
-			</option>
+				<option disabled value="svg-url">
+					<img src="extra/address-book.svg">
+					Image(SVG)
+				</option>
 
-			<option value="unicode">
-				<b style="font-size:25px; line-height:1.2">☯</b>
-				Unicode Symbol
-			</option>
-		</a-select>
+				<option value="svg-inline">
+					<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+					  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
+					</svg>
+					Inline SVG
+				</option>
 
-		<div id="demo-forms">
-			<form id="demo-form-one" onsubmit="logFormData(event)">
-				<button>Form One Submit</button>
-			</form>
+				<option value="unicode">
+					<b style="font-size:25px; line-height:1.2">☯</b>
+					Unicode Symbol
+				</option>
+			</a-select>
 
-			<form id="demo-form-two" onsubmit="logFormData(event)">
-				<button>Form Two Submit</button>
-			</form>
+			<!-- form data -->
+			<output id="demo-form-data"></output>
 		</div>
 	</section>
 
@@ -224,13 +258,13 @@
 	<script>
 		function logFormData(event) {
 			event.preventDefault();
-			const data = new FormData(event.target);
-
-			console.group(`Form: ${event.target.id}`);
-			for (const entry of data.entries()) {
-				console.log(entry)
-			}
-			console.groupEnd();
+			let output = event.target.name;
+			console.log(event.target.enries)
+			// const data = new FormData(event.target);
+			// const obj = Object.fromEntries(data);
+			// const target = document.getElementById('demo-form-data');
+			// output += "\n" + JSON.stringify(obj, null, 2);
+			// target.value = output;
 		}
 	</script>
 </body>

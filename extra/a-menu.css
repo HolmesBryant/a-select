@@ -22,7 +22,7 @@
 
 	/* left/right padding of menu items */
 	/* also affects the left margin of items in 'sitemap' menu*/
-	--amenu-pad: .5rem;
+	--amenu-pad: 0 0 0 .25rem;
 
 	/* transition duration */
   --amenu-duration: 400ms;
@@ -132,6 +132,8 @@ a-menu {
 	{ padding: 0 var(--amenu-pad) }
 
 	& div { padding: var(--amenu-pad) }
+
+	& div.flex { flex-wrap: nowrap }
 
 	&::part(summary)
 	{ padding-left: var(--amenu-pad) }

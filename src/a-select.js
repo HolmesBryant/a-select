@@ -64,11 +64,11 @@ export default class ASelect extends HTMLElement {
 
   /**
    * How many options are visible on page load.
-   * Default is undefined for select single and 4 for select multiple.
+   * Default is 0 for select single and 4 for select multiple.
    * @private
    * @type {number}
    */
-  _size;
+  _size = 0;
 
   /**
    * The value(s) sent when the associated form is submitted
@@ -104,6 +104,8 @@ export default class ASelect extends HTMLElement {
   _processing = false;
   _select;
   _slot;
+  _updateBound = true;
+  _values;
 
   // --- Public Properties
 
@@ -158,8 +160,7 @@ export default class ASelect extends HTMLElement {
     switch (attr) {
       case 'active':
         this._active = this.hasAttribute('active');
-        // console.log(this._active)
-        // this._showPicker(this._active);
+        this._showPicker(this._active);
         break;
 
       case 'autofocus':
@@ -197,16 +198,24 @@ export default class ASelect extends HTMLElement {
 
       case 'multiple':
         this._multiple = this.hasAttribute('multiple');
-        this._select.multiple = this._multiple;
         this._optionContainer.toggleAttribute('data-multiple', this._multiple);
+        this._select.multiple = this._multiple;
+
+        if (!this._connected) return;
+        if (this._multiple) {
+          this._select.tabIndex = "-1";
+          this.active = true;
+        }
         break;
 
       case 'required':
         this._required = this.hasAttribute('required');
         this._select.required = this._required;
+        this._setValidity(this._getInvalidStates());
         break;
 
       case 'size':
+        if (newval === null) return;
         const s = parseInt(newval);
         if (isNaN(s)) {
           console.error(`a-select.size must be a number; value given was ${newval}`, this);
@@ -218,11 +227,16 @@ export default class ASelect extends HTMLElement {
 
       case 'value':
         newval = newval.split(',').map( v => v.trim() );
-        if (this._connected) this._setSelected(this._value);
+        this._value = newval;
+        if (this._connected) {
+          this._setSelected(this._value);
+          this._setValue();
+        }
         break;
     }
 
-    globalThis[abindUpdate]?.(this, attr, this[attr]);
+    if (this._updateBound) globalThis[abindUpdate]?.(this, attr, this[attr]);
+    this._updateBound = true;
   }
 
   connectedCallback() {
@@ -235,6 +249,9 @@ export default class ASelect extends HTMLElement {
 
     this._addListeners();
     if (this._active) this._showPicker();
+    setTimeout(() => {
+      if (this._value) this._setSelected(this._value);
+    }, 0);
     this._connected = true;
   }
 
@@ -268,10 +285,10 @@ export default class ASelect extends HTMLElement {
 
     this._optionContainer.addEventListener('pointerdown', event => {
       if (this._disabled) return;
-
       const option = event.target.closest('div');
       if (option.hasAttribute('disabled')) return;
       this._setSelected(option.dataset.value, option);
+      this._setValue();
       if (this._multiple) return;
       this.active = false;
     }, { signal:this._abortController.signal });
@@ -290,6 +307,7 @@ export default class ASelect extends HTMLElement {
 
     window.addEventListener('pointerdown', event => {
       if (event.target.closest('a-select')) return;
+      this._updateBound = false;
       if (!this._multiple && this._active) this.active = false;
     });
   }
@@ -320,7 +338,7 @@ export default class ASelect extends HTMLElement {
     });
 
     return results;
-};
+  }
 
   _handleKeyPress(event) {
     const items = (this._multiple) ? this._optionContainer.children : this._select.children;
@@ -334,6 +352,7 @@ export default class ASelect extends HTMLElement {
     } else if (['Enter', ' '].includes(event.key)) {
       event.preventDefault();
       this._setSelected(value, item);
+      this._setValue();
     }
   }
 
@@ -360,6 +379,7 @@ export default class ASelect extends HTMLElement {
       this._select.append(item);
     });
 
+    this._values = [...this._select.options].map(option => option.value);
     this._setValue();
     this._setValidity(this._getInvalidStates());
     this._setOptions();
@@ -384,24 +404,34 @@ export default class ASelect extends HTMLElement {
   }
 
   _setSelected(value, selected) {
+    // console.log(value, selected)
+    if (!Array.isArray(value)) value = [value];
     selected = selected || this._optionContainer.querySelector(`[data-value="${value}"]`);
     for (const option of this._select.options) {
-      if (value === option.value) {
-        option.selected = !option.selected;
-        selected.toggleAttribute('aria-selected', option.selected);
+      if (value.includes(option.value)) {
+        if (this._multiple) {
+          option.selected = !option.selected;
+          selected.toggleAttribute('aria-selected', option.selected);
+        } else {
+          option.selected = true;
+          selected.toggleAttribute('aria-selected', true);
+        }
         if (!this._multiple) this._deselectOthers(selected);
       }
     }
 
-
-    this._setValue();
+    console.log(this._select.selectedOptions)
   }
 
   _setSize() {
-    if (!this._multiple && !this._size) return;
+    if (this._size === 0) {
+      this._optionContainer.style.removeProperty('height');
+      this.removeAttribute('size');
+      return;
+    }
     const optElem = this._optionContainer.children[0];
-    const size = (optElem.scrollHeight + 1) * this._size + 'px';
-    this._optionContainer.style.height = size;
+    const height = (optElem.scrollHeight + 1) * this._size + 'px';
+    this._optionContainer.style.height = height;
   }
 
   _setValidity(flags = {}) {
@@ -493,7 +523,6 @@ export default class ASelect extends HTMLElement {
   set active(value) {
     value = value != null && value !== false;
     this.toggleAttribute('active', value);
-    // console.trace('active', this.hasAttribute('active'))
   }
 
   get autofocus() { return this._autofocus }
@@ -520,7 +549,7 @@ export default class ASelect extends HTMLElement {
     this.toggleAttribute('multiple', value);
   }
 
-  get options() { return this._select.options }
+  get options() { this._select.options }
 
   get required() { return this._required }
   set required(value) {
@@ -541,6 +570,8 @@ export default class ASelect extends HTMLElement {
 
   get value() { return this._value }
   set value(value) { this.setAttribute('value', value) }
+
+  get values() { return this._values }
 }
 
 if (!customElements.get('a-select')) customElements.define('a-select', ASelect);

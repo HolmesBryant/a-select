@@ -8,6 +8,7 @@
 	--border-color: silver;
 	--text-color: dimgray;
 	--min: 35px;
+	--min-width: 180px;
 	--pad: .5rem;
 	--gap:  .25rem;
 }
@@ -263,6 +264,10 @@ body {
 	select
 	{ min-height: var(--min) }
 
+	input,
+	select
+	{ min-width: var(--min-width); }
+
 	.button,
 	button,
 	input[type="radio"],
@@ -277,10 +282,7 @@ body {
 	{ padding: var(--pad); }
 
 	label
-	{
-		display: inline-block;
-		/* flex: 1; */
-	}
+	{ display: inline-block; }
 
 	li
 	{ margin-bottom: 1rem; }
@@ -313,17 +315,11 @@ body {
 	select::-webkit-scrollbar
 	{ display: none; }
 
-	select {
-		min-width: 100px;
-	}
+	select[multiple]
+	{ padding: 0; }
 
-	select[multiple] {
-		padding: 0;
-	}
-
-	summary {
-		padding: var(--pad);
-	}
+	summary
+	{ padding: var(--pad); }
 
 	textarea {
 		min-height: 75px;
@@ -399,7 +395,7 @@ body {
 	{ flex-basis: 49% }
 
 	.flex100
-	{ flex-basis: 99% }
+	{ width: 100%; }
 
 	.flex240
 	{ flex-basis: 240px }
@@ -434,6 +430,9 @@ body {
 	.flex.end
 	{ justify-content: end }
 
+	.flex.column.end
+	{ align-items: flex-end; }
+
 	.flex:not(.column).bottom
 	{ align-items: end }
 
@@ -442,6 +441,9 @@ body {
 
 	.flex.start
 	{ justify-content: start }
+
+	.flex.column.start
+	{ align-items: flex-start; }
 
 	.flex:not(.column).top
 	{ align-items: start }
