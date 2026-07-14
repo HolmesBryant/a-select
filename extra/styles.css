@@ -294,7 +294,7 @@ body {
 	{
 		align-items: center;
 		display: inline-flex;
-		font-family: "Courier New" ui-monospace;
+		font-family: "Courier New", ui-monospace;
 		justify-content: center;
 		min-width: var(--min);
 		min-height: 1ch;

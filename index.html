@@ -151,21 +151,11 @@
 
 				    	<a-bind prop="form">
 					    	<select id="demo-form">
-					    		<option value="demo-form-one">Form One</option>
-					    		<option value="demo-form-two">Form Two</option>
+					    		<option value="form-one">Form One</option>
+					    		<option value="form-two">Form Two</option>
 					    	</select>
 					    </a-bind>
 				    </div>
-
-				  	<div id="demo-forms" class="flex">
-							<form id="demo-form-one" name="Form One" onsubmit="logFormData(event)">
-								<button>Form One</button>
-							</form>
-
-							<form id="demo-form-two" name="Form Two" onsubmit="logFormData(event)">
-								<button>Form Two</button>
-							</form>
-						</div>
 				  </div>
 				</a-menu>
 
@@ -179,43 +169,82 @@
 			</a-menu>
 		</a-bindgroup>
 
-		<div class="flex flex1 column gap4">
+		<div class="flex flex1 top">
+
 			<!-- A-Select -->
-			<a-select
-				multiple
-				id="demo"
-				name="a-select-demo"
-				value="svg-inline"
-				form="demo-form-one">
-				<option value="">Select...</option>
+			<div class="flex column card" style="overflow:visible">
+				<strong>Input</strong>
+				<a-select
+					multiple
+					id="demo"
+					name="demo"
+					value="Image, unicode"
+					form="form-one">
+					<option value="">Select...</option>
 
-				<option>No Icon</option>
+					<option>No Icon</option>
 
-				<option>
-					<img slot="icon" src="extra/sample.jpg">
-					Image
-				</option>
+					<option>
+						<img slot="icon" src="extra/sample.jpg">
+						Image
+					</option>
 
-				<option disabled value="svg-url">
-					<img src="extra/address-book.svg">
-					Image(SVG)
-				</option>
+					<option value="svg-url">
+						<img src="extra/address-book.svg">
+						Image(SVG)
+					</option>
 
-				<option value="svg-inline">
-					<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-					  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
-					</svg>
-					Inline SVG
-				</option>
+					<option value="svg-inline">
+						<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+						  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
+						</svg>
+						Inline SVG
+					</option>
 
-				<option value="unicode">
-					<b style="font-size:25px; line-height:1.2">☯</b>
-					Unicode Symbol
-				</option>
-			</a-select>
+					<option value="unicode">
+						<b style="font-size:25px; line-height:1.2">☯</b>
+						Unicode Symbol
+					</option>
+				</a-select>
+			</div>
 
-			<!-- form data -->
-			<output id="demo-form-data"></output>
+			<div class="flex flex1 column stretch">
+				<!-- Output -->
+				<div class="flex flex1 column card">
+					<strong>Output</strong>
+					<!-- form data -->
+					<output id="demo-form-data"></output>
+				</div>
+
+				<!-- Forms -->
+				<div class="flex column card">
+					<span>Active Form:
+						<a-bind model="dom:#demo" prop="form" elem-prop="textContent">
+							<b id="demo-form-name"></b>
+						</a-bind>
+					</span>
+
+					<div id="demo-forms" class="flex column">
+						<form
+							id="form-one"
+							name="Form One"
+							onsubmit="logFormData(event)">
+							<button>Submit (form-one)</button>
+							<button type="reset">Reset</button>
+						</form>
+
+						<form
+							id="form-two"
+							name="Form Two"
+							onsubmit="logFormData(event)">
+							<button>Submit (form-two)</button>
+							<button type="reset">Reset</button>
+						</form>
+					</div>
+				</div>
+			</div>
+
+
 		</div>
 	</section>
 
@@ -223,8 +252,9 @@
 	<section>
 		<h2>Examples</h2>
 
-		<form onsubmit="logFormData(event)">
-			<select required id="test" size="4">
+		<form name="example-form" onsubmit="logFormData(event)">
+		<!-- <form name="example-form" method="post"> -->
+			<select id="test-single" size="4">
 				<option value="">Select...</option>
 				<option>Aay</option>
 				<option>Bee</option>
@@ -244,13 +274,15 @@
 				<option>Boom</option>
 			</select>
 
-			<select id="test" multiple disabled>
-				<option>One</option>
-				<option>Two</option>
+			<!-- <select name="test-multi" multiple>
+				<option selected>One</option>
+				<option selected>Two</option>
 				<option>Three</option>
-			</select>
+			</select> -->
 
-			<input id="ssgdg">
+			<input name="foo" value="foo">
+
+			<input name="foo" value="bar">
 			<button>OK</button>
 		</form>
 	</section>
@@ -258,13 +290,22 @@
 	<script>
 		function logFormData(event) {
 			event.preventDefault();
-			let output = event.target.name;
-			console.log(event.target.enries)
-			// const data = new FormData(event.target);
-			// const obj = Object.fromEntries(data);
-			// const target = document.getElementById('demo-form-data');
-			// output += "\n" + JSON.stringify(obj, null, 2);
-			// target.value = output;
+			setTimeout(() => {
+				let output = [];
+				const form = event.target;
+				const name = `(${form.name}) \n`;
+				const target = document.getElementById('demo-form-data');
+				const data = new FormData(form);
+				const entries = data.entries();
+
+				target.value = '';
+				for (const entry of entries) {
+					output.push(entry.join('='));
+				}
+
+				output = output.join('&');
+				target.value = name + output;
+			});
 		}
 	</script>
 </body>

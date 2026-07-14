@@ -93,6 +93,10 @@ export default class ASelect extends HTMLElement {
    */
   _connected = false;
 
+  _convertValue = false;
+
+  _defaultValue;
+
   /**
    * Track focus index
    * @private
@@ -104,7 +108,7 @@ export default class ASelect extends HTMLElement {
   _processing = false;
   _select;
   _slot;
-  _updateBound = true;
+  // _updateBound = true;
   _values;
 
   // --- Public Properties
@@ -205,7 +209,11 @@ export default class ASelect extends HTMLElement {
         if (this._multiple) {
           this._select.tabIndex = "-1";
           this.active = true;
+        } else {
+          this.active = false;
         }
+
+        this._setSelected(this._value, false);
         break;
 
       case 'required':
@@ -235,8 +243,9 @@ export default class ASelect extends HTMLElement {
         break;
     }
 
-    if (this._updateBound) globalThis[abindUpdate]?.(this, attr, this[attr]);
-    this._updateBound = true;
+    // if (this._updateBound)
+    globalThis[abindUpdate]?.(this, attr, this[attr]);
+    // this._updateBound = true;
   }
 
   connectedCallback() {
@@ -245,13 +254,12 @@ export default class ASelect extends HTMLElement {
     if (this._multiple) {
       this._select.tabIndex = "-1";
       this.active = true;
+      this._convertValue = true;
     }
 
     this._addListeners();
     if (this._active) this._showPicker();
-    setTimeout(() => {
-      if (this._value) this._setSelected(this._value);
-    }, 0);
+
     this._connected = true;
   }
 
@@ -270,6 +278,7 @@ export default class ASelect extends HTMLElement {
     this._slot.addEventListener('slotchange', () => {
       if (this.children.length === 0) return;
       this._populateSelect();
+      this._setSelected(this._value, false);
     }, { signal: signal });
 
     this._select.addEventListener('pointerdown', event => {
@@ -287,7 +296,7 @@ export default class ASelect extends HTMLElement {
       if (this._disabled) return;
       const option = event.target.closest('div');
       if (option.hasAttribute('disabled')) return;
-      this._setSelected(option.dataset.value, option);
+      this._setSelected(option.dataset.value);
       this._setValue();
       if (this._multiple) return;
       this.active = false;
@@ -295,7 +304,6 @@ export default class ASelect extends HTMLElement {
 
     this._optionContainer.addEventListener('keydown', event => {
       if (this._disabled) return;
-
       this._handleKeyPress(event);
     }, { signal:this._abortController.signal });
 
@@ -307,8 +315,47 @@ export default class ASelect extends HTMLElement {
 
     window.addEventListener('pointerdown', event => {
       if (event.target.closest('a-select')) return;
-      this._updateBound = false;
+      // this._updateBound = false;
       if (!this._multiple && this._active) this.active = false;
+    });
+
+    this._internals.form.addEventListener('reset', event => {
+      // this._setSelected(this._value);
+      console.log(this._value)
+    }, { signal: this._abortController.signal });
+
+    if (this._convertValue && this._internals.form) {
+      this._internals.form.addEventListener('submit', event => {
+        this._convertMultiValue(event);
+      }, { signal: this._abortController.signal });
+    }
+  }
+
+  _convertMultiValue(event) {
+    event.preventDefault();
+    const input = this._internals.form[this._name];
+    if (!input) return this._internals.form.requestSubmit();
+
+    const hidden = document.createElement('input');
+    const hiddenElems = [];
+    this._internals.setFormValue('');
+    input.disabled = true;
+    hidden.type = 'hidden';
+    hidden.name = this._name;
+    this._value.forEach( val => {
+      const hidden_ = hidden.cloneNode('true');
+      hidden_.value = val;
+      hiddenElems.push(hidden_);
+      this._internals.form.append(hidden_);
+    });
+
+    this._internals.form.requestSubmit();
+
+    setTimeout( () => {
+      input.disabled = false;
+      hiddenElems.forEach( elem => {
+        elem.remove();
+      });
     });
   }
 
@@ -351,7 +398,8 @@ export default class ASelect extends HTMLElement {
       this._moveFocus(-1);
     } else if (['Enter', ' '].includes(event.key)) {
       event.preventDefault();
-      this._setSelected(value, item);
+      // this._setSelected(value, item);
+      this._setSelected(value);
       this._setValue();
     }
   }
@@ -403,24 +451,29 @@ export default class ASelect extends HTMLElement {
     this._setSize();
   }
 
-  _setSelected(value, selected) {
-    // console.log(value, selected)
+  _setSelected(value, toggle = true) {
     if (!Array.isArray(value)) value = [value];
-    selected = selected || this._optionContainer.querySelector(`[data-value="${value}"]`);
-    for (const option of this._select.options) {
-      if (value.includes(option.value)) {
-        if (this._multiple) {
-          option.selected = !option.selected;
-          selected.toggleAttribute('aria-selected', option.selected);
-        } else {
-          option.selected = true;
-          selected.toggleAttribute('aria-selected', true);
+    for (const idx in value) {
+      const val = value[idx];
+      const selected = this._optionContainer.querySelector(`[data-value="${val}"]`);
+      if (!selected) {
+        console.warn(`There is no option whose value is "${val}" (case sensitive)`);
+        continue;
+      }
+
+      for (const option of this._select.options) {
+        if (value.includes(option.value)) {
+          if (this._multiple) {
+            if (toggle) option.selected = !option.selected;
+            selected.toggleAttribute('aria-selected', option.selected);
+          } else {
+            option.selected = true;
+            selected.toggleAttribute('aria-selected', true);
+          }
+          if (!this._multiple) this._deselectOthers(selected);
         }
-        if (!this._multiple) this._deselectOthers(selected);
       }
     }
-
-    console.log(this._select.selectedOptions)
   }
 
   _setSize() {
@@ -440,8 +493,8 @@ export default class ASelect extends HTMLElement {
 
   _setValue() {
     if (this._disabled) return;
-    this._value = Array.from(this._select.selectedOptions).map( o => o.value);
-    this._internals.setFormValue(this._value);
+    this.value = Array.from(this._select.selectedOptions).map( o => o.value);
+    this._internals.setFormValue(this.value);
     this._setValidity(this._getInvalidStates());
   }
 
