@@ -4,13 +4,14 @@
 	--background: linen;
 	--border-color: silver;
 	--border-radius: 5px;
-	--brightness: 1.25;
+	--hover-brightness: .9;
 	--cursor: pointer;
-	--height: 35px;
+	--option-height: 35px;
 	--pad: .5rem;
-	--text: rgb(40,40,40);
+	--text-color: rgb(40,40,40);
 	--transition-duration: .25s;
 
+	border-radius: var(--border-radius);
 	display: inline-block;
 	position: relative;
 	interpolate-size: allow-keywords;
@@ -52,13 +53,14 @@ div[data-value] {
 	background: var(--background);
 	border-bottom: 1px solid var(--border-color);
 	box-sizing: border-box;
-	color: var(--text);
+	color: var(--text-color);
 	cursor: var(--cursor);
 	display: flex;
-	gap: var(--pad);
-	height: var(--height);
+	gap: .5rem;
+	height: var(--option-height);
 	justify-content: flex-start;
-	padding: 0 var(--pad);
+	line-height: 1em;
+	padding: var(--pad);
 	width: 100%;
 }
 
@@ -71,7 +73,7 @@ select:disabled {
 
 div:focus,
 div[data-value]:not([disabled]):hover {
-	filter: brightness(var(--brightness));
+	filter: brightness(var(--hover-brightness));
 }
 
 div:focus-within {
@@ -79,7 +81,7 @@ div:focus-within {
 }
 
 div[data-value] * {
-	height: var(--height);
+	height: var(--option-height);
 }
 
 div[selected],
@@ -106,14 +108,14 @@ div[disabled]::before {
 option {
 	align-items: center;
 	display: flex;
-	height: var(--height);
-	padding: 0 var(--pad);
+	height: var(--option-height);
+	padding: var(--pad);
 }
 
 select {
 	background: var(--background);
 	border-radius: var(--border-radius);
-	color: var(--text);
+	color: var(--text-color);
 	cursor: var(--cursor);
 	padding: var(--pad);
 }
@@ -129,7 +131,7 @@ select[multiple] {
 }
 
 svg {
-	fill: var(--text);
+	fill: var(--text-color);
 }
 
 #options {
@@ -154,7 +156,7 @@ svg {
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius);
 	height: max-content;
-	min-height: var(--height);
+	min-height: var(--option-height);
 	overflow-y: auto;
 }
 
@@ -178,9 +180,9 @@ svg {
 
 @media (prefers-color-scheme: dark) {
 	:host {
-		--text: white;
+		--text-color: white;
 		--background: rgb(40,40,40);
 		--border-color: dimgray;
-		--brightness: 1.75;
+		--hover-brightness: .75;
 	}
 }

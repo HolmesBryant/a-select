@@ -1,31 +1,31 @@
 {
-  "name": "[name]",
-  "description": "Custom element that displays a variety of spinners.",
+  "name": "a-select",
+  "description": "Custom element that displays a select input capable of showing images in the options.",
   "version": "1.0.0",
   "license": "GPL-3.0-or-later",
   "author": "Holmes Bryant <webmaastaa@gmail.com>",
-  "homepage": "https://github.com/HolmesBryant/[name]",
+  "homepage": "https://github.com/HolmesBryant/a-select",
   "type": "module",
-  "main": "./dist/[name].min.js",
-  "module": "./dist/[name].min.js",
+  "main": "./dist/a-select.min.js",
+  "module": "./dist/a-select.min.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HolmesBryant/[name].git"
+    "url": "https://github.com/HolmesBryant/a-select.git"
   },
   "keywords": [
     "module",
     "component"
   ],
   "exports": {
-    ".": "./dist/[name].min.js",
-    "./src/[name].js": "./src/[name].js"
+    ".": "./dist/a-select.min.js",
+    "./src/a-select.js": "./src/a-select.js"
   },
   "files": [
     "dist",
     "src"
   ],
   "bugs": {
-    "url": "https://github.com/HolmesBryant/[name]/issues"
+    "url": "https://github.com/HolmesBryant/a-select/issues"
   },
   "scripts": {
     "build": "rollup -c",

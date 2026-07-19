@@ -27,18 +27,18 @@ function importableStylesheet() {
 }
 
 export default {
-  input: 'src/[name].js',
+  input: 'src/a-select.js',
   output: [
     // Standard ES Module (unminified)
     {
-      file: 'dist/[name].js',
+      file: 'dist/a-select.js',
       format: 'es',
       sourcemap: false,
       inlineDynamicImports: true
     },
     // Minified ES Module
     {
-      file: 'dist/[name].min.js',
+      file: 'dist/a-select.min.js',
       format: 'es',
       plugins: [terser({
         output: { comments: false },

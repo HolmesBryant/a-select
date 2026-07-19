@@ -5,12 +5,16 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>a-select custom element</title>
 	<script type="module" src="src/a-select.js"></script>
+	<!-- <script type="module" src="dist/a-select.min.js"></script> -->
+
 	<script type="module" src="extra/a-bind.min.js"></script>
 	<script type="module" src="extra/a-menu.min.js"></script>
+	<script type="module" src="extra/a-color.min.js"></script>
 
 	<link rel="stylesheet" href="extra/styles.css">
 	<link rel="stylesheet" href="dist/a-select.css">
 	<link rel="stylesheet" href="extra/a-menu.css">
+	<link rel="stylesheet" href="extra/a-color.css">
 
 	<style>
 		a-bind { display: contents; }
@@ -29,15 +33,15 @@
 	</header>
 
 	<!-- demo -->
-	<section class="flex top space-between">
+	<section class="flex top">
 		<a-bindgroup model="dom:#demo" class="flex240">
 			<a-menu
 				open
 				type="mobile"
 				show-icon=""
 				>
-				<a-menu open group="demo-menu">
-					<b slot="label">Attributes</b>
+				<a-menu group="demo-menu">
+				<b slot="label">Attributes</b>
 					<!-- active -->
 					<div class="flex">
 						<a-bind
@@ -91,6 +95,20 @@
 
 			    	<label for="demo-multiple">
 			    		multiple
+			    	</label>
+			    </div>
+
+			    <!-- convert-multi -->
+			    <div class="flex">
+			    	<a-bind
+			    		prop="convertMulti"
+			    		elem-prop="checked">
+
+			    		<input type="checkbox" id="demo-convert-multi">
+			    	</a-bind>
+
+			    	<label for="demo-convert-multi">
+			    		convert-multi
 			    	</label>
 			    </div>
 
@@ -159,70 +177,208 @@
 				  </div>
 				</a-menu>
 
-				<a-menu group="demo-menu">
-					<b slot="label">Properties</b>
-				</a-menu>
-
-				<a-menu group="demo-menu">
+				<a-menu open group="demo-menu">
 					<b slot="label">CSS Variables</b>
+
+					<!-- background -->
+					<div class="flex">
+						<a-bind prop="--background">
+							<a-color id="demo-background">
+							</a-color>
+						</a-bind>
+
+						<label for="demo-background">
+							--background
+						</label>
+					</div>
+
+					<!-- text-color -->
+					<div class="flex">
+						<a-bind prop="--text-color">
+							<a-color id="demo-text-color">
+							</a-color>
+						</a-bind>
+
+						<label for="demo-text-color">
+							--text-color
+						</label>
+					</div>
+
+					<!-- accent-color -->
+					<div class="flex">
+						<a-bind prop="--accent-color">
+							<a-color id="demo-accent-color">
+							</a-color>
+						</a-bind>
+
+						<label for="demo-accent-color">
+							--accent-color
+						</label>
+					</div>
+
+					<!-- accent-text -->
+					<div class="flex">
+						<a-bind prop="--accent-text">
+							<a-color id="demo-accent-text">
+							</a-color>
+						</a-bind>
+
+						<label for="demo-accent-text">
+							--accent-text
+						</label>
+					</div>
+
+					<!-- border-color -->
+					<div class="flex">
+						<a-bind prop="--border-color">
+							<a-color id="demo-border-color">
+							</a-color>
+						</a-bind>
+
+						<label for="demo-border-color">
+							--border-color
+						</label>
+					</div>
+
+					<!-- border-radius -->
+					<div class="flex column start">
+						<label for="demo-border-radius">
+							--border-radius
+						</label>
+
+						<a-bind prop="--border-radius">
+							<input id="demo-border-radius">
+							</a-bind>
+					</div>
+
+					<!-- option-height -->
+					<div class="flex column start">
+						<label for="demo-option-height">
+							--option-height
+						</label>
+
+						<a-bind prop="--option-height">
+							<input id="demo-option-height">
+							</a-bind>
+					</div>
+
+					<!-- hover-brightness -->
+					<div class="flex column start">
+						<label for="demo-hover-brightness">
+							--hover-brightness
+						</label>
+
+						<a-bind prop="--hover-brightness">
+							<input
+								type="number"
+								min="0"
+								step=".25"
+								id="demo-hover-brightness">
+							</a-bind>
+					</div>
+
+					<!-- cursor -->
+					<div class="flex column start">
+						<label for="demo-cursor">
+							--cursor
+						</label>
+
+						<a-bind prop="--cursor">
+							<select id="demo-cursor">
+								<option>auto</option>
+								<option>context-menu</option>
+								<option>default</option>
+								<option>help</option>
+								<option>pointer</option>
+							</select>
+						</a-bind>
+					</div>
+
+					<!-- pad -->
+					<div class="flex column start">
+						<label for="demo-pad">
+							--pad
+						</label>
+
+						<a-bind prop="--pad">
+							<select id="demo-pad">
+								<option>0</option>
+								<option>.5rem</option>
+								<option>16px</option>
+								<option>5ch</option>
+							</select>
+						</a-bind>
+					</div>
+
+					<!-- transition-duration -->
+					<div class="flex column start">
+						<label for="demo-transition-duration">
+							--transition-duration
+						</label>
+
+						<a-bind prop="--transition-duration">
+							<input
+								list="demo-transition-list"
+								id="demo-transition-duration">
+							</a-bind>
+
+							<datalist id="demo-transition-list">
+								<option>0</option>
+								<option>.25s</option>
+								<option>500ms</option>
+								<option>1s</option>
+							</datalist>
+					</div>
 				</a-menu>
 			</a-menu>
 		</a-bindgroup>
 
-		<div class="flex flex1 top">
+		<div class="flex flex1 column stretch">
 
-			<!-- A-Select -->
-			<div class="flex column card" style="overflow:visible">
-				<strong>Input</strong>
-				<a-select
-					multiple
-					id="demo"
-					name="demo"
-					value="Image, unicode"
-					form="form-one">
-					<option value="">Select...</option>
+			<div class="flex stretch">
+				<!-- A-Select -->
+				<div class="flex flex1 column card" style="overflow:visible">
+					<h4>Input</h4>
+					<a-select
+						id="demo"
+						name="demo"
+						value="Image"
+						form="form-one">
+						<option value="">Select...</option>
 
-					<option>No Icon</option>
+						<option>No Icon</option>
 
-					<option>
-						<img slot="icon" src="extra/sample.jpg">
-						Image
-					</option>
+						<option>
+							<img slot="icon" src="extra/sample.jpg">
+							Image
+						</option>
 
-					<option value="svg-url">
-						<img src="extra/address-book.svg">
-						Image(SVG)
-					</option>
+						<option value="svg-url">
+							<img src="extra/address-book.svg">
+							Image(SVG)
+						</option>
 
-					<option value="svg-inline">
-						<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-						  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
-						</svg>
-						Inline SVG
-					</option>
+						<option value="svg-inline">
+							<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+							  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
+							</svg>
+							Inline SVG
+						</option>
 
-					<option value="unicode">
-						<b style="font-size:25px; line-height:1.2">☯</b>
-						Unicode Symbol
-					</option>
-				</a-select>
-			</div>
-
-			<div class="flex flex1 column stretch">
-				<!-- Output -->
-				<div class="flex flex1 column card">
-					<strong>Output</strong>
-					<!-- form data -->
-					<output id="demo-form-data"></output>
+						<option value="unicode">
+							<b style="font-size:25px; line-height:1.2">☯</b>
+							Unicode Symbol
+						</option>
+					</a-select>
 				</div>
 
 				<!-- Forms -->
-				<div class="flex column card">
-					<span>Active Form:
+				<div class="flex flex1 column card">
+					<h4>Active Form:
 						<a-bind model="dom:#demo" prop="form" elem-prop="textContent">
 							<b id="demo-form-name"></b>
 						</a-bind>
-					</span>
+					</h4>
 
 					<div id="demo-forms" class="flex column">
 						<form
@@ -244,47 +400,54 @@
 				</div>
 			</div>
 
-
+			<!-- Output -->
+			<div class="card">
+				<h4>Output</h4>
+				<!-- form data -->
+				<output id="demo-form-data"></output>
+			</div>
 		</div>
+
+
+
 	</section>
 
 	<!-- examples -->
 	<section>
 		<h2>Examples</h2>
 
-		<form name="example-form" onsubmit="logFormData(event)">
-		<!-- <form name="example-form" method="post"> -->
-			<select id="test-single" size="4">
-				<option value="">Select...</option>
-				<option>Aay</option>
-				<option>Bee</option>
-				<option>Sea</option>
-				<option>Seb</option>
-				<option>Sec</option>
-				<option>Sed</option>
-				<option>Sef</option>
-				<option>Seg</option>
-				<option>Seh</option>
-				<option>Sei</option>
-				<option>Sej</option>
-				<option>Sek</option>
-				<option>Sel</option>
-				<option>Sem</option>
-				<option>Sen</option>
-				<option>Boom</option>
-			</select>
+		<div class="card">
+			<h3>Show Options on Page Load</h3>
 
-			<!-- <select name="test-multi" multiple>
-				<option selected>One</option>
-				<option selected>Two</option>
-				<option>Three</option>
-			</select> -->
+			<a-select active>
+				<option>One</option>
+				<option>Two</option>
+			</a-select>
 
-			<input name="foo" value="foo">
+			<a-code highlight>
+				<textarea>
+					<a-select active>
+						<option>...</option>
+					</a-select>
+				</textarea>
+			</a-code>
+		</div>
 
-			<input name="foo" value="bar">
-			<button>OK</button>
-		</form>
+		<div class="card">
+			<h3>Automatic Focus on Page Load</h3>
+			<a-select autofocus>
+				<option>One</option>
+				<option>Two</option>
+			</a-select>
+
+			<a-code highlight>
+				<textarea>
+					<a-select autofocus>
+						<option>...</option>
+					</a-select>
+				</textarea>
+			</a-code>
+		</div>
 	</section>
 
 	<script>
@@ -300,6 +463,7 @@
 
 				target.value = '';
 				for (const entry of entries) {
+					entry[1] = entry[1].replace(' ', '+');
 					output.push(entry.join('='));
 				}
 

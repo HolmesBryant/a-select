@@ -48,7 +48,7 @@ body {
   letter-spacing: .1rem;
   line-height: 1.5rem;
   margin: auto;
-	max-width: 1024px;
+	max-width: 1920px;
 	padding: var(--pad);
 }
 
@@ -143,6 +143,15 @@ body {
 	option:checked:disabled,
 	select:checked:disabled
 	{ outline: 1px solid var(--accent-color) }
+
+	.lime
+	{ border: 1px solid lime }
+
+	.orange
+	{ border: 1px solid orange }
+
+	.pink
+	{ border: 1px solid salmon }
 
 /**** Text ****/
 	a
@@ -298,6 +307,7 @@ body {
 		justify-content: center;
 		min-width: var(--min);
 		min-height: 1ch;
+		overflow-x: auto;
 		padding: 5px;
 		white-space: pre-wrap;
 	}
@@ -328,6 +338,11 @@ body {
 
 	ul, ol
 	{ margin: 0; }
+
+	.break {
+		white-space: normal;
+		word-break: break-word;
+	}
 
 	.card {
 		min-height: 85px;

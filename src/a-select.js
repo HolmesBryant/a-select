@@ -27,6 +27,8 @@ export default class ASelect extends HTMLElement {
    */
   _autofocus = false;
 
+  _convertMulti = false;
+
   /**
    * Whether the element is disabled
    * @private
@@ -86,16 +88,14 @@ export default class ASelect extends HTMLElement {
    */
   _abortController;
 
+  _submitController;
+
   /**
    * Whether connectedCallback() has been run
    * @private
    * @type {boolean}
    */
   _connected = false;
-
-  _convertValue = false;
-
-  _defaultValue;
 
   /**
    * Track focus index
@@ -108,7 +108,6 @@ export default class ASelect extends HTMLElement {
   _processing = false;
   _select;
   _slot;
-  // _updateBound = true;
   _values;
 
   // --- Public Properties
@@ -118,6 +117,7 @@ export default class ASelect extends HTMLElement {
   static observedAttributes = [
     'active',
     'autofocus',
+    'convert-multi',
     'disabled',
     'form',
     'name',
@@ -179,6 +179,19 @@ export default class ASelect extends HTMLElement {
         }
         break;
 
+      case 'convert-multi':
+        this._convertMulti = this.hasAttribute('convert-multi');
+        if (this._connected) {
+          if (this._convertMulti) {
+            this._addSubmitListener();
+          } else {
+            this._submitController.abort();
+            this._submitController = null;
+            this._setValue();
+          }
+        }
+        break;
+
       case 'disabled':
         this._disabled = this.hasAttribute('disabled');
         this._select.disabled = this._disabled;
@@ -198,6 +211,9 @@ export default class ASelect extends HTMLElement {
 
         this._form = newval;
         this._select.setAttribute('form', newval);
+        if (this._connected && this._convertMulti) {
+          this._addSubmitListener();
+        }
         break;
 
       case 'multiple':
@@ -243,9 +259,11 @@ export default class ASelect extends HTMLElement {
         break;
     }
 
-    // if (this._updateBound)
-    globalThis[abindUpdate]?.(this, attr, this[attr]);
-    // this._updateBound = true;
+    if (attr === 'convert-multi') {
+      globalThis[abindUpdate]?.(this, 'convertMulti', this[attr]);
+    } else {
+      globalThis[abindUpdate]?.(this, attr, this[attr]);
+    }
   }
 
   connectedCallback() {
@@ -254,10 +272,10 @@ export default class ASelect extends HTMLElement {
     if (this._multiple) {
       this._select.tabIndex = "-1";
       this.active = true;
-      this._convertValue = true;
     }
 
     this._addListeners();
+    if (this._convertMulti) this._addSubmitListener();
     if (this._active) this._showPicker();
 
     this._connected = true;
@@ -267,6 +285,11 @@ export default class ASelect extends HTMLElement {
     if (this._abortController) {
       this._abortController.abort();
       this._abortController = null;
+    }
+
+    if (this._submitController) {
+      this._submitController.abort();
+      this._submitController = null;
     }
   }
 
@@ -323,18 +346,29 @@ export default class ASelect extends HTMLElement {
       // this._setSelected(this._value);
       console.log(this._value)
     }, { signal: this._abortController.signal });
+  }
 
-    if (this._convertValue && this._internals.form) {
-      this._internals.form.addEventListener('submit', event => {
-        this._convertMultiValue(event);
-      }, { signal: this._abortController.signal });
+  _addSubmitListener() {
+    if (this._submitController) {
+      this._submitController.abort();
+      this._submitController = null;
     }
+
+    this._submitController = new AbortController();
+    this._internals.form.addEventListener('submit', event => {
+      if (this._form !== event.target.id) return;
+      this._convertMultiValue(event);
+    }, { signal: this._submitController.signal });
   }
 
   _convertMultiValue(event) {
     event.preventDefault();
     const input = this._internals.form[this._name];
-    if (!input) return this._internals.form.requestSubmit();
+    if (!input) {
+      console.error(`a-select is not associated with the form "${this._internals.form.id}"`);
+      this._internals.form.requestSubmit();
+      return;
+    }
 
     const hidden = document.createElement('input');
     const hiddenElems = [];
@@ -493,8 +527,9 @@ export default class ASelect extends HTMLElement {
 
   _setValue() {
     if (this._disabled) return;
-    this.value = Array.from(this._select.selectedOptions).map( o => o.value);
+    this._value = Array.from(this._select.selectedOptions).map( o => o.value);
     this._internals.setFormValue(this.value);
+    globalThis[abindUpdate]?.(this, 'value', this._value);
     this._setValidity(this._getInvalidStates());
   }
 
@@ -582,6 +617,12 @@ export default class ASelect extends HTMLElement {
   set autofocus(value) {
     value = value != null && value !== false;
     this.toggleAttribute('autofocus', value);
+  }
+
+  get convertMulti() { return this._convertMulti }
+  set convertMulti(value) {
+    value = value != null && value !== false;
+    this.toggleAttribute('convert-multi', value);
   }
 
   get disabled() { return this._disabled }
