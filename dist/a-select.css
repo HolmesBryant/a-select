@@ -1,5 +1,33 @@
 a-select {
+	--accent-color: dodgerblue;
+	--accent-text: white;
+	--background: linen;
+	--border-color: silver;
+	--border-radius: 5px;
+	--hover-brightness: .9;
+	--cursor: pointer;
+	--option-height: 35px;
+	--pad: .5rem;
+	--text-color: rgb(40,40,40);
+	--transition-duration: .25s;
 }
 
-a-select[active] {
+@media (prefers-color-scheme: dark) {
+	:host {
+		--text-color: white;
+		--background: rgb(40,40,40);
+		--border-color: dimgray;
+		--hover-brightness: .75;
+	}
 }
+
+a-select[active] {}
+
+/* Contains a native select element and the container holding the options */
+a-select::part(wrapper) {}
+
+/* The select element used to store state. In "multiple" mode it is hidden. */
+a-select::part(select) {}
+
+/* Container for the options. The options are <div> elements */
+a-select::part(options) {}

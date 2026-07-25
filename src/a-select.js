@@ -10,7 +10,13 @@ import styles from './a-select-shadow.css' with {type: 'css'};
 
 const abindUpdate = Symbol.for('abind.update');
 
+/**
+ * A custom element that renders a select element with support for images
+ * @extends HTMLElement
+ * @implements FormAssociatedElement
+ */
 export default class ASelect extends HTMLElement {
+
   // --- Attributes ---
 
   /**
@@ -18,51 +24,56 @@ export default class ASelect extends HTMLElement {
    * @private
    * @type {boolean}
    */
-  _active = false;
+  #active = false;
 
   /**
    * Whether the element is focused on page load
    * @private
    * @type {boolean}
    */
-  _autofocus = false;
+  #autofocus = false;
 
-  _convertMulti = false;
+  /**
+   * Whether the submitted form data if formatted like a normal select[multiple] element
+   * @private
+   * @type {boolean}
+   */
+  #convertMulti = false;
 
   /**
    * Whether the element is disabled
    * @private
    * @type {boolean}
    */
-  _disabled = false;
+  #disabled = false;
 
   /**
-   * The name of the element
+   * The name of the element (for form submission)
    * @private
    * @type {boolean}
    */
-  _name;
+  #name;
 
   /**
    * The id of the form element to associate with
    * @private
    * @type {string | undefined}
    */
-  _form;
+  #form;
 
   /**
    * Whether the element behaves like a select[multiple] element
    * @private
    * @type {boolean}
    */
-  _multiple = false;
+  #multiple = false;
 
   /**
    * Whether a value is required
    * @private
    * @type {boolean}
    */
-  _required = false;
+  #required = false;
 
   /**
    * How many options are visible on page load.
@@ -70,14 +81,14 @@ export default class ASelect extends HTMLElement {
    * @private
    * @type {number}
    */
-  _size = 0;
+  #size = 0;
 
   /**
    * The value(s) sent when the associated form is submitted
    * @private
    * @type {string | array}
    */
-  _value = [];
+  #value = [];
 
   // --- Private Properties ---
 
@@ -86,34 +97,85 @@ export default class ASelect extends HTMLElement {
    * @private
    * @type {AbortController}
    */
-  _abortController;
-
-  _submitController;
+  #abortController;
 
   /**
-   * Whether connectedCallback() has been run
+   * Controller for form reset events
+   * @private
+   * @type {AbortController | null}
+   */
+  #resetController;
+
+  /**
+   * Controller for form submit events (used in convert-multi mode)
+   * @private
+   * @type {AbortController | null}
+   */
+  #submitController;
+
+  /**
+   * Whether connectedCallback() has run
    * @private
    * @type {boolean}
    */
-  _connected = false;
+  #connected = false;
 
   /**
-   * Track focus index
+   * Track focus index for keyboard navigation
    * @private
    * @type {number}
    */
-  _idx = -1;
-  _items = [];
-  _optionContainer;
-  _processing = false;
-  _select;
-  _slot;
-  _values;
+  #idx = -1;
 
-  // --- Public Properties
+  /**
+   * Array of DOM elements representing options (populated dynamically)
+   * @private
+   * @type {HTMLElement[]}
+   */
+  #items = [];
 
+  /**
+   * Container for the option list (picker) within shadow DOM
+   * @private
+   * @type {HTMLElement}
+   */
+  #optionContainer;
+
+  /**
+   * Reference to the internal <select> element within shadow DOM
+   * @private
+   * @type {HTMLSelectElement}
+   */
+  #select;
+
+  /**
+   * Reference to the slot element in shadow DOM
+   * @private
+   * @type {HTMLSlotElement}
+   */
+  #slot;
+
+  /**
+   * Array of values from the internal <select> options
+   * @private
+   * @type {string[]}
+   */
+  #values;
+
+  // --- Static Properties
+
+  /**
+   * Indicates this element is form-associated.
+   * @static
+   * @type {boolean}
+   */
   static formAssociated = true;
 
+  /**
+   * List of attributes that trigger attributeChangedCallback updates.
+   * @static
+   * @type {string[]}
+   */
   static observedAttributes = [
     'active',
     'autofocus',
@@ -127,17 +189,17 @@ export default class ASelect extends HTMLElement {
     'value'
   ];
 
+  /**
+   * Shadow DOM template for the component structure.
+   * @static
+   * @type {HTMLTemplateElement}
+   */
   static template = document.createElement('template');
   static {
     this.template.innerHTML = `
-      <style>
-        :host { display: inline-block }
-      </style>
-
-      <div id="wrapper">
-        <select id="select"></select>
-        <div id="options"></div>
-        <div id="overlay"></div>
+      <div id="wrapper" part="wrapper">
+        <select id="select" part="select"></select>
+        <div id="options" part="options"></div>
       </div>
 
       <slot hidden id="slot"></slot>
@@ -152,53 +214,60 @@ export default class ASelect extends HTMLElement {
     this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.shadowRoot.adoptedStyleSheets = [styles];
     this.shadowRoot.append(ASelect.template.content.cloneNode(true));
-    this._select = this.shadowRoot.getElementById('select');
-    this._slot = this.shadowRoot.getElementById('slot');
-    this._optionContainer = this.shadowRoot.getElementById('options');
+    this.#select = this.shadowRoot.getElementById('select');
+    this.#slot = this.shadowRoot.getElementById('slot');
+    this.#optionContainer = this.shadowRoot.getElementById('options');
   }
 
-  // --- Lifecycle ---
+  // --- Lifecycle Methods ---
 
+  /**
+   * Called when an attribute's value changes.
+   * Handles updating internal state and triggering re-renders or side effects based on the changed attribute.
+   * @param {string} attr - The name of the changed attribute.
+   * @param {string | null} oldval - The previous value of the attribute (null if not set before).
+   * @param {string | null} newval - The new value of the attribute.
+   */
   attributeChangedCallback(attr, oldval, newval) {
     if (newval === oldval) return;
     switch (attr) {
       case 'active':
-        this._active = this.hasAttribute('active');
-        this._showPicker(this._active);
+        this.#active = this.hasAttribute('active');
+        this.#showPicker(this.#active);
         break;
 
       case 'autofocus':
-        this._autofocus = this.hasAttribute('autofocus');
-        if (this._autofocus && this._multiple) {
-          this._optionContainer.tabIndex = 0;
-          this._optionContainer.focus();
-        } else if (!this._autofocus && this._multiple) {
-          this._optionContainer.removeAttribute('tab-index');
-        } else if (this._autofocus) {
-          this._select.focus();
+        this.#autofocus = this.hasAttribute('autofocus');
+        if (this.#autofocus && this.#multiple) {
+          this.#optionContainer.tabIndex = 0;
+          this.#optionContainer.focus();
+        } else if (!this.#autofocus && this.#multiple) {
+          this.#optionContainer.removeAttribute('tab-index');
+        } else if (this.#autofocus) {
+          this.#select.focus();
         }
         break;
 
       case 'convert-multi':
-        this._convertMulti = this.hasAttribute('convert-multi');
-        if (this._connected) {
-          if (this._convertMulti) {
-            this._addSubmitListener();
+        this.#convertMulti = this.hasAttribute('convert-multi');
+        if (this.#connected) {
+          if (this.#convertMulti) {
+            this.#addSubmitListener();
           } else {
-            this._submitController.abort();
-            this._submitController = null;
-            this._setValue();
+            this.#submitController.abort();
+            this.#submitController = null;
+            this.#setValue();
           }
         }
         break;
 
       case 'disabled':
-        this._disabled = this.hasAttribute('disabled');
-        this._select.disabled = this._disabled;
+        this.#disabled = this.hasAttribute('disabled');
+        this.#select.disabled = this.#disabled;
         break;
 
       case 'name':
-        this._name = newval;
+        this.#name = newval;
         this._internals.name = newval;
         break;
 
@@ -209,33 +278,34 @@ export default class ASelect extends HTMLElement {
           return;
         }
 
-        this._form = newval;
-        this._select.setAttribute('form', newval);
-        if (this._connected && this._convertMulti) {
-          this._addSubmitListener();
+        this.#form = newval;
+        this.#select.setAttribute('form', newval);
+        this.#addResetListener();
+        if (this.#connected && this.#convertMulti) {
+          this.#addSubmitListener();
         }
         break;
 
       case 'multiple':
-        this._multiple = this.hasAttribute('multiple');
-        this._optionContainer.toggleAttribute('data-multiple', this._multiple);
-        this._select.multiple = this._multiple;
+        this.#multiple = this.hasAttribute('multiple');
+        this.#optionContainer.toggleAttribute('data-multiple', this.#multiple);
+        this.#select.multiple = this.#multiple;
 
-        if (!this._connected) return;
-        if (this._multiple) {
-          this._select.tabIndex = "-1";
+        if (!this.#connected) return;
+        if (this.#multiple) {
+          this.#select.tabIndex = "-1";
           this.active = true;
         } else {
           this.active = false;
         }
 
-        this._setSelected(this._value, false);
+        this.#setSelected(this.#value, false);
         break;
 
       case 'required':
-        this._required = this.hasAttribute('required');
-        this._select.required = this._required;
-        this._setValidity(this._getInvalidStates());
+        this.#required = this.hasAttribute('required');
+        this.#select.required = this.#required;
+        this.#setValidity(this.#getInvalidStates());
         break;
 
       case 'size':
@@ -244,17 +314,17 @@ export default class ASelect extends HTMLElement {
         if (isNaN(s)) {
           console.error(`a-select.size must be a number; value given was ${newval}`, this);
         } else {
-          this._size = s;
-          if (this._connected) this._setSize();
+          this.#size = s;
+          if (this.#connected) this.#setSize();
         }
         break;
 
       case 'value':
         newval = newval.split(',').map( v => v.trim() );
-        this._value = newval;
-        if (this._connected) {
-          this._setSelected(this._value);
-          this._setValue();
+        this.#value = newval;
+        if (this.#connected) {
+          this.#setSelected(this.#value);
+          this.#setValue();
         }
         break;
     }
@@ -266,104 +336,151 @@ export default class ASelect extends HTMLElement {
     }
   }
 
+  /**
+   * Called when the element is added to the DOM.
+   * Initializes abort controllers, sets default names if missing, adds event listeners, and shows picker if active.
+   */
   connectedCallback() {
-    this._abortController = new AbortController();
-    if (!this._name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
-    if (this._multiple) {
-      this._select.tabIndex = "-1";
+    this.#abortController = new AbortController();
+    if (!this.#name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
+    if (this.#multiple) {
+      this.#select.tabIndex = "-1";
       this.active = true;
     }
 
-    this._addListeners();
-    if (this._convertMulti) this._addSubmitListener();
-    if (this._active) this._showPicker();
+    this.#addListeners();
+    if (this.#convertMulti) this.#addSubmitListener();
+    if (this.#active) this.#showPicker();
 
-    this._connected = true;
+    this.#connected = true;
   }
 
+  /**
+   * Called when the element is removed from the DOM or disconnected.
+   * Cleans up all abort controllers associated with event listeners to prevent memory leaks.
+   */
   disconnectedCallback() {
-    if (this._abortController) {
-      this._abortController.abort();
-      this._abortController = null;
+    if (this.#abortController) {
+      this.#abortController.abort();
+      this.#abortController = null;
     }
 
-    if (this._submitController) {
-      this._submitController.abort();
-      this._submitController = null;
+    if (this.#submitController) {
+      this.#submitController.abort();
+      this.#submitController = null;
+    }
+
+    if (this.#resetController) {
+      this.#resetController.abort();
+      this.#resetController = null;
     }
   }
 
   // --- Private Methods ---
 
-  _addListeners() {
-    const signal = this._abortController.signal;
+  /**
+   * Adds various event listeners for interaction, keyboard navigation, and form submission.
+   * Uses an AbortController signal to ensure cleanup on disconnection.
+   * @private
+   */
+  #addListeners() {
+    const signal = this.#abortController.signal;
 
-    this._slot.addEventListener('slotchange', () => {
+    this.#slot.addEventListener('slotchange', () => {
       if (this.children.length === 0) return;
-      this._populateSelect();
-      this._setSelected(this._value, false);
+      this.#populateSelect();
+      this.#setSelected(this.#value, false);
     }, { signal: signal });
 
-    this._select.addEventListener('pointerdown', event => {
+    this.#select.addEventListener('pointerdown', event => {
       event.preventDefault();
-      if (this._disabled) return;
-      this._select.focus();
-      this.active = !this._active;
+      if (this.#disabled) return;
+      this.#select.focus();
+      this.active = !this.#active;
     }, { signal: signal });
 
-    this._select.addEventListener('change', event => {
-      this._setValue();
+    this.#select.addEventListener('change', event => {
+      this.#setValue();
     });
 
-    this._optionContainer.addEventListener('pointerdown', event => {
-      if (this._disabled) return;
+    this.#optionContainer.addEventListener('pointerdown', event => {
+      if (this.#disabled) return;
       const option = event.target.closest('div');
       if (option.hasAttribute('disabled')) return;
-      this._setSelected(option.dataset.value);
-      this._setValue();
-      if (this._multiple) return;
+      this.#setSelected(option.dataset.value);
+      this.#setValue();
+      if (this.#multiple) return;
       this.active = false;
-    }, { signal:this._abortController.signal });
+    }, { signal:this.#abortController.signal });
 
-    this._optionContainer.addEventListener('keydown', event => {
-      if (this._disabled) return;
-      this._handleKeyPress(event);
-    }, { signal:this._abortController.signal });
+    this.#optionContainer.addEventListener('keydown', event => {
+      if (this.#disabled) return;
+      this.#handleKeyPress(event);
+    }, { signal:this.#abortController.signal });
 
-    if (!this._multiple) {
-      this._select.addEventListener('keydown', event => {
-        this._handleKeyPress(event);
-      }, { signal: this._abortController.signal });
+    if (!this.#multiple) {
+      this.#select.addEventListener('keydown', event => {
+        this.#handleKeyPress(event);
+      }, { signal: this.#abortController.signal });
     }
 
     window.addEventListener('pointerdown', event => {
       if (event.target.closest('a-select')) return;
       // this._updateBound = false;
-      if (!this._multiple && this._active) this.active = false;
+      if (!this.#multiple && this.#active) this.active = false;
     });
 
-    this._internals.form.addEventListener('reset', event => {
-      // this._setSelected(this._value);
-      console.log(this._value)
-    }, { signal: this._abortController.signal });
+    /*if (this._internals.form) {
+      this._internals.form.addEventListener('reset', event => {
+        this.#setSelected(this.getAttribute('value'));
+      }, { signal: this.#abortController.signal });
+    }*/
   }
 
-  _addSubmitListener() {
-    if (this._submitController) {
-      this._submitController.abort();
-      this._submitController = null;
+  /**
+   * Sets up a listener for the 'reset' event on the associated form element.
+   * Resets the selection when the form is reset.
+   * @private
+   */
+  #addResetListener() {
+    if (this.#resetController) {
+      this.#resetController.abort();
+      this.#resetController = null;
     }
 
-    this._submitController = new AbortController();
-    this._internals.form.addEventListener('submit', event => {
-      if (this._form !== event.target.id) return;
-      this._convertMultiValue(event);
-    }, { signal: this._submitController.signal });
+    this.#resetController = new AbortController();
+    this._internals.form.addEventListener('reset', event => {
+      this.#setSelected(this.getAttribute('value'));
+    }, { signal: this.#resetController.signal });
   }
 
-  _convertMultiValue(event) {
+  /**
+   * Sets up a listener for the 'submit' event on the associated form element (if in convert-multi mode).
+   * Converts multiple selections into hidden inputs before submission.
+   * @private
+   */
+  #addSubmitListener() {
+    if (this.#submitController) {
+      this.#submitController.abort();
+      this.#submitController = null;
+    }
+
+    this.#submitController = new AbortController();
+    this._internals.form.addEventListener('submit', event => {
+      if (this.#form !== event.target.id) return;
+      this.#convertMultiValue(event);
+    }, { signal: this.#submitController.signal });
+  }
+
+  /**
+   * Handles the actual conversion of multi-select values to hidden inputs during form submit.
+   * Prevents default submission, replaces value with hidden inputs, then re-enables input after a timeout.
+   * @private
+   * @param {Event} event - The submit event.
+   */
+  #convertMultiValue(event) {
     event.preventDefault();
-    const input = this._internals.form[this._name];
+    const input = this._internals.form[this.#name];
     if (!input) {
       console.error(`a-select is not associated with the form "${this._internals.form.id}"`);
       this._internals.form.requestSubmit();
@@ -375,8 +492,8 @@ export default class ASelect extends HTMLElement {
     this._internals.setFormValue('');
     input.disabled = true;
     hidden.type = 'hidden';
-    hidden.name = this._name;
-    this._value.forEach( val => {
+    hidden.name = this.#name;
+    this.#value.forEach( val => {
       const hidden_ = hidden.cloneNode('true');
       hidden_.value = val;
       hiddenElems.push(hidden_);
@@ -393,13 +510,23 @@ export default class ASelect extends HTMLElement {
     });
   }
 
-  _deselectOthers(selected) {
-    Array.from(this._optionContainer.children).map( item => {
+  /**
+   * Removes 'aria-selected' attribute from all options except the specified one.
+   * @private
+   * @param {HTMLElement | null} selected - The option element that should remain selected.
+   */
+  #deselectOthers(selected) {
+    Array.from(this.#optionContainer.children).map( item => {
       if (item !== selected) item.removeAttribute('aria-selected');
     });
   }
 
-  _getInvalidStates() {
+  /**
+   * Collects validity state flags (e.g., badInput, valueMissing) from the internal select element.
+   * @private
+   * @returns {Object<string, boolean>} An object mapping error names to their validity states.
+   */
+  #getInvalidStates() {
     const results = {};
     const errNames = [
       'badInput',
@@ -415,31 +542,43 @@ export default class ASelect extends HTMLElement {
     ]
 
     errNames.forEach( name => {
-      if (this._select.validity[name]) results[name] = this._select.validity[name];
+      if (this.#select.validity[name]) results[name] = this.#select.validity[name];
     });
 
     return results;
   }
 
-  _handleKeyPress(event) {
-    const items = (this._multiple) ? this._optionContainer.children : this._select.children;
-    const item = items[this._idx];
+  /**
+   * Handles keyboard events for navigation and selection within the picker or native select.
+   * Supports ArrowUp/ArrowDown for movement and Enter/Space for selection.
+   * @private
+   * @param {KeyboardEvent} event - The keydown event.
+   */
+  #handleKeyPress(event) {
+    const items = (this.#multiple) ? this.#optionContainer.children : this.#select.children;
+    const item = items[this.#idx];
     const value = item?.dataset.value || item?.value;
 
     if (event.key === 'ArrowDown') {
-      this._moveFocus(1);
+      this.#moveFocus(1);
     } else if (event.key === 'ArrowUp') {
-      this._moveFocus(-1);
+      this.#moveFocus(-1);
     } else if (['Enter', ' '].includes(event.key)) {
       event.preventDefault();
-      // this._setSelected(value, item);
-      this._setSelected(value);
-      this._setValue();
+      // this.#setSelected(value, item);
+      this.#setSelected(value);
+      this.#setValue();
     }
   }
 
-  _highlight(i) {
-    const items = Array.from(this._optionContainer.children);
+  /**
+   * Focuses a specific option item by index within the picker container.
+   * Also blurs other items to maintain focus state.
+   * @private
+   * @param {number} i - The zero-based index of the item to highlight/focus.
+   */
+  #highlight(i) {
+    const items = Array.from(this.#optionContainer.children);
     items.forEach((item, idx) => {
       if (idx === i) {
         item.focus();
@@ -449,102 +588,154 @@ export default class ASelect extends HTMLElement {
     });
   }
 
-  _moveFocus(offset) {
-    this._idx = (this._idx + offset + this._items.length) % this._items.length;
-    this._highlight(this._idx);
+  /**
+   * Adjusts the current focused index in the list by an offset (for arrow key navigation).
+   * Wraps around using modulo arithmetic.
+   * @private
+   * @param {number} offset - The amount to move the focus index (+/-).
+   */
+  #moveFocus(offset) {
+    this.#idx = (this.#idx + offset + this.#items.length) % this.#items.length;
+    this.#highlight(this.#idx);
   }
 
-  _populateSelect() {
-    this._items = Array.from(this.children) || Array.from(this._optionContainer.children);
-    this._items.forEach( item => {
-      if (this._value.includes(item.value)) item.selected = true;
-      this._select.append(item);
+  /**
+   * Populates the internal <select> element with children from the slot or option container.
+   * Updates selection based on current value attribute and triggers validity checks.
+   * @private
+   */
+  #populateSelect() {
+    this.#items = Array.from(this.children) || Array.from(this.#optionContainer.children);
+    this.#items.forEach( item => {
+      if (this.#value.includes(item.value)) item.selected = true;
+      this.#select.append(item);
     });
 
-    this._values = [...this._select.options].map(option => option.value);
-    this._setValue();
-    this._setValidity(this._getInvalidStates());
-    this._setOptions();
+    this.#values = [...this.#select.options].map(option => option.value);
+    this.#setValue();
+    this.#setValidity(this.#getInvalidStates());
+    this.#setOptions();
   }
 
-  _setOptions() {
+  /**
+   * Rebuilds the DOM structure of the option picker (divs) to match the options in the internal select.
+   * Applies tabindex for multiple mode and calculates height if size is set.
+   * @private
+   */
+  #setOptions() {
     const div = document.createElement('div');
-    this._optionContainer.innerHTML = "";
+    this.#optionContainer.innerHTML = "";
 
-    this._items.forEach( item => {
+    this.#items.forEach( item => {
       const div_a = div.cloneNode();
       div_a.innerHTML = item.innerHTML;
       div_a.dataset.value = item.value;
       for (const attr of item.attributes) {
         div_a.setAttribute(attr.name, attr.value);
       }
-      if (this._multiple) div_a.tabIndex = 0;
-      this._optionContainer.append(div_a);
+      if (this.#multiple) div_a.tabIndex = 0;
+      this.#optionContainer.append(div_a);
     });
 
-    this._setSize();
+    this.#setSize();
   }
 
-  _setSelected(value, toggle = true) {
+  /**
+   * Updates the selection state of both the internal <select> and the visible option container divs.
+   * Handles single/multiple logic, toggling aria-selected attributes, and deselecting others in single mode.
+   * @private
+   * @param {string | string[]} value - The value(s) to select. Can be a string or array of strings.
+   * @param {boolean} [toggle=true] - If true     (for multiple mode), false otherwise.
+   */
+  #setSelected(value, toggle = true) {
     if (!Array.isArray(value)) value = [value];
     for (const idx in value) {
       const val = value[idx];
-      const selected = this._optionContainer.querySelector(`[data-value="${val}"]`);
+      const selected = this.#optionContainer.querySelector(`[data-value="${val}"]`);
       if (!selected) {
         console.warn(`There is no option whose value is "${val}" (case sensitive)`);
         continue;
       }
 
-      for (const option of this._select.options) {
+      for (const option of this.#select.options) {
         if (value.includes(option.value)) {
-          if (this._multiple) {
+          if (this.#multiple) {
             if (toggle) option.selected = !option.selected;
             selected.toggleAttribute('aria-selected', option.selected);
           } else {
             option.selected = true;
             selected.toggleAttribute('aria-selected', true);
           }
-          if (!this._multiple) this._deselectOthers(selected);
+          if (!this.#multiple) this.#deselectOthers(selected);
         }
       }
     }
   }
 
-  _setSize() {
-    if (this._size === 0) {
-      this._optionContainer.style.removeProperty('height');
+  /**
+   * Adjusts the height of the option picker container based on the number of visible rows (#size).
+   * Removes fixed height if size is set to 0 or null.
+   * @private
+   */
+  #setSize() {
+    if (this.#size === 0) {
+      this.#optionContainer.style.removeProperty('height');
       this.removeAttribute('size');
       return;
     }
-    const optElem = this._optionContainer.children[0];
-    const height = (optElem.scrollHeight + 1) * this._size + 'px';
-    this._optionContainer.style.height = height;
+    const optElem = this.#optionContainer.children[0];
+    const height = (optElem.scrollHeight + 1) * this.#size + 'px';
+    this.#optionContainer.style.height = height;
   }
 
-  _setValidity(flags = {}) {
-    this._internals.setValidity(flags, this._select.validationMessage, this);
+  /**
+   * Sets validity state and message for the form-associated element using internals API.
+   * @private
+   * @param {Object<string, boolean>} flags - Validity state flags (e.g., badInput).
+   * @param {string} [message] - Custom validation message.
+   * @param {HTMLElement} [validationMessageTarget] - Element to associate the message with.
+   */
+  #setValidity(flags = {}) {
+    this._internals.setValidity(flags, this.#select.validationMessage, this);
   }
 
-  _setValue() {
-    if (this._disabled) return;
-    this._value = Array.from(this._select.selectedOptions).map( o => o.value);
+  /**
+   * Updates the internal value array from the selected options in the native <select> element.
+   * Triggers external updates via abindUpdate if available and sets validity state.
+   * @private
+   */
+  #setValue() {
+    if (this.#disabled) return;
+    this.#value = Array.from(this.#select.selectedOptions).map( o => o.value);
     this._internals.setFormValue(this.value);
-    globalThis[abindUpdate]?.(this, 'value', this._value);
-    this._setValidity(this._getInvalidStates());
+    globalThis[abindUpdate]?.(this, 'value', this.#value);
+    this.#setValidity(this.#getInvalidStates());
   }
 
-  _showPicker(open = true) {
+  /**
+   * Toggles the visibility of the option picker (adds/removes 'open' class).
+   * @private
+   * @param {boolean} [open=true] - Whether to open or close the picker.
+   */
+  #showPicker(open = true) {
     if (open) {
-      this._optionContainer.classList.add('open');
+      this.#optionContainer.classList.add('open');
     } else {
-      this._optionContainer.classList.remove('open');
+      this.#optionContainer.classList.remove('open');
     }
   }
 
   // --- Public Methods ---
 
+  /**
+   * Adds a new option element to the select list.
+   * Accepts either an HTMLElement (option/div) or a string text content.
+   * Can insert before another node or at a specific index.
+   * @param {HTMLElement | string} option - The option to add, or text content for a new <option>.
+   * @param {HTMLElement | number} [before] - An existing element to insert before, or an index (-1 for end).
+   */
   add(option, before) {
-    const options = this._optionContainer;
+    const options = this.#optionContainer;
     try {
       if (typeof option === 'string') {
         const newOption = document.createElement('option');
@@ -562,7 +753,7 @@ export default class ASelect extends HTMLElement {
         options.appendChild(option);
       }
 
-      this._setOptions();
+      this.#setOptions();
     } catch (error) {
       console.group('a-select.add()');
       console.error(error);
@@ -572,32 +763,62 @@ export default class ASelect extends HTMLElement {
     }
   }
 
+  /**
+   * Checks if the select element is valid according to HTML5 constraints.
+   * @returns {boolean} True if valid, false otherwise.
+   */
   checkValidity() {
-    return this._select.checkValidity();
+    return this.#select.checkValidity();
   }
 
+  /**
+   * Retrieves an option element by its zero-based index in the picker container.
+   * @param {number} index - The zero-based index of the item to retrieve.
+   * @returns {HTMLElement | null} The option element at the specified index, or null if out of bounds.
+   */
   item(index) {
-    return this._optionContainer.children.item(index);
+    return this.#optionContainer.children.item(index);
   }
 
+  /**
+   * Retrieves an option element by its name attribute (if present).
+   * @param {string} name - The name attribute value to search for.
+   * @returns {HTMLElement | null} The named option, or null if not found.
+   */
   namedItem(name) {
-    return this._optionContainer.children.namedItem(name);
+    return this.#optionContainer.children.namedItem(name);
   }
 
+  /**
+   * Removes an option element from the picker container by its zero-based index.
+   * Re-populates the internal select and updates options after removal.
+   * @param {number} index - The zero-based index of the item to remove.
+   * @returns {HTMLElement} The removed option element.
+   */
   remove(index) {
-    const item = this._optionContainer.children[index];
+    const item = this.#optionContainer.children[index];
     item.remove();
-    this._populateSelect();
+    this.#populateSelect();
     return item;
   }
 
+  /**
+   * Reports whether the form control is valid without throwing an exception.
+   * @returns {boolean} True if valid, false otherwise.
+   */
   reportValidity() {
-    return this._select.reportValidity();
+    return this.#select.reportValidity();
   }
 
+  /**
+   * Sets a custom validation message for the element.
+   * If invalid, displays the message in the browser's UI.
+   * @param {string} str - The custom error message to display.
+   * @returns {boolean} True if successful, false on error.
+   */
   setCustomValidity(str) {
     try {
-      this._select.setCustomValidity(str);
+      this.#select.setCustomValidity(str);
       return true;
     } catch (error) {
       console.error(error);
@@ -607,51 +828,102 @@ export default class ASelect extends HTMLElement {
 
   // --- Getters / Setters ---
 
-  get active() { return this._active }
+  /**
+   * Gets or sets whether the option picker is currently visible/active.
+   * Toggles the 'active' attribute when setting.
+   * @type {boolean}
+   */
+  get active() { return this.#active }
   set active(value) {
     value = value != null && value !== false;
+    console.log(value)
     this.toggleAttribute('active', value);
   }
 
-  get autofocus() { return this._autofocus }
+  /**
+   * Gets or sets whether the element receives focus automatically on page load.
+   * Toggles the 'autofocus' attribute when setting.
+   * @type {boolean}
+   */
+  get autofocus() { return this.#autofocus }
   set autofocus(value) {
     value = value != null && value !== false;
     this.toggleAttribute('autofocus', value);
   }
 
-  get convertMulti() { return this._convertMulti }
+  /**
+   * Gets or sets whether the element should convert multiple selections into hidden inputs on form submit.
+   * Toggles the 'convert-multi' attribute when setting.
+   * @type {boolean}
+   */
+  get convertMulti() { return this.#convertMulti }
   set convertMulti(value) {
     value = value != null && value !== false;
     this.toggleAttribute('convert-multi', value);
   }
 
-  get disabled() { return this._disabled }
+  /**
+   * Gets or sets whether the element is disabled.
+   * Toggles the 'disabled' attribute and updates internal state when setting.
+   * @type {boolean}
+   */
+  get disabled() { return this.#disabled }
   set disabled(value) {
     value = value != null && value !== false;
     this.toggleAttribute('disabled', value);
   }
 
-  get form() { return this._form }
+  /**
+   * Gets or sets the ID of the associated form element.
+   * Updates the native <select> 'form' attribute and adds reset listener when setting.
+   * @type {string | undefined}
+   */
+  get form() { return this.#form }
   set form(value) { this.setAttribute('form', value) }
 
-  get name() { return this._name }
+  /**
+   * Gets or sets the name of the element (used in form submissions).
+   * Updates both internal state and HTML 'name' attribute when setting.
+   * @type {string | undefined}
+   */
+  get name() { return this.#name }
   set name(value) { this.setAttribute('name', value) }
 
-  get multiple() { return this._multiple }
+  /**
+   * Gets or sets whether the element behaves like a native <select multiple> element.
+   * Toggles the 'multiple' attribute, updates internal state, and adjusts tabindex/active behavior when setting.
+   * @type {boolean}
+   */
+  get multiple() { return this.#multiple }
   set multiple(value) {
     value = value != null && value !== false;
     this.toggleAttribute('multiple', value);
   }
 
-  get options() { this._select.options }
+  /**
+   * Gets a reference to the native <select> element's options collection (from shadow DOM).
+   * Note: This is a direct getter returning an existing property, not a setter.
+   * @type {HTMLOptionsCollection}
+   */
+  get options() { this.#select.options }
 
-  get required() { return this._required }
+  /**
+   * Gets or sets whether the element requires a value to be selected (HTML5 required attribute).
+   * Toggles the 'required' attribute and updates validity state when setting.
+   * @type {boolean}
+   */
+  get required() { return this.#required }
   set required(value) {
     value = value != null && value !== false;
     this.toggleAttribute('required', value);
   }
 
-  get size() { return this._size }
+  /**
+   * Gets or sets how many option rows are visible at once (for multi-row pickers).
+   * Validates input as a number and updates the 'size' attribute when setting.
+   * @type {number}
+   */
+  get size() { return this.#size }
   set size(value) {
     const nan = isNaN(parseInt(value));
     if (nan) {
@@ -662,10 +934,20 @@ export default class ASelect extends HTMLElement {
     this.setAttribute('size', value);
   }
 
-  get value() { return this._value }
+  /**
+   * Gets or sets the current selected value(s) as an array of strings.
+   * Updates the HTML 'value' attribute (comma-separated string) when setting.
+   * @type {string | string[]}
+   */
+  get value() { return this.#value }
   set value(value) { this.setAttribute('value', value) }
 
-  get values() { return this._values }
+  /**
+   * Gets the current values from the internal <select> options as an array of strings.
+   * Note: This is a direct getter returning an existing property, not a setter.
+   * @type {string[]}
+   */
+  get values() { return this.#values }
 }
 
 if (!customElements.get('a-select')) customElements.define('a-select', ASelect);

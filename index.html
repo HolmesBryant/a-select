@@ -10,11 +10,15 @@
 	<script type="module" src="extra/a-bind.min.js"></script>
 	<script type="module" src="extra/a-menu.min.js"></script>
 	<script type="module" src="extra/a-color.min.js"></script>
+	<script type="module" src="extra/a-code.min.js"></script>
+	<!-- <script type="module" src="extra/a-markdown.min.js"></script> -->
 
 	<link rel="stylesheet" href="extra/styles.css">
 	<link rel="stylesheet" href="dist/a-select.css">
 	<link rel="stylesheet" href="extra/a-menu.css">
 	<link rel="stylesheet" href="extra/a-color.css">
+	<link rel="stylesheet" href="extra/a-code.css">
+	<link rel="stylesheet" href="extra/a-markdown.css">
 
 	<style>
 		a-bind { display: contents; }
@@ -23,8 +27,7 @@
 <body>
 	<header>
 		<h1>a-select custom element</h1>
-		<strong>The description</strong>
-		<p><a href="">Repo</a></p>
+		<p>a-select is a custom web component that extends the native HTML &lt;select> element. It provides an enhanced dropdown interface, supports rendering options as images (or any rich content), and fully integrates with the browser's form submission system via the Form Associated Custom Elements API.</p>
 
 		<details id="readme">
 			<summary>README</summary>
@@ -33,6 +36,8 @@
 	</header>
 
 	<!-- demo -->
+	<h2>Demo</h2>
+
 	<section class="flex top">
 		<a-bindgroup model="dom:#demo" class="flex240">
 			<a-menu
@@ -40,7 +45,7 @@
 				type="mobile"
 				show-icon=""
 				>
-				<a-menu group="demo-menu">
+				<a-menu open group="demo-menu">
 				<b slot="label">Attributes</b>
 					<!-- active -->
 					<div class="flex">
@@ -177,8 +182,8 @@
 				  </div>
 				</a-menu>
 
-				<a-menu open group="demo-menu">
-					<b slot="label">CSS Variables</b>
+				<a-menu group="demo-menu">
+					<b slot="label">Theming</b>
 
 					<!-- background -->
 					<div class="flex">
@@ -339,6 +344,7 @@
 				<!-- A-Select -->
 				<div class="flex flex1 column card" style="overflow:visible">
 					<h4>Input</h4>
+
 					<a-select
 						id="demo"
 						name="demo"
@@ -402,7 +408,7 @@
 
 			<!-- Output -->
 			<div class="card">
-				<h4>Output</h4>
+				<h4>Output (Form Submission)</h4>
 				<!-- form data -->
 				<output id="demo-form-data"></output>
 			</div>
@@ -413,16 +419,151 @@
 	</section>
 
 	<!-- examples -->
-	<section>
-		<h2>Examples</h2>
+	<h2>Examples</h2>
+
+	<section class="flex stretch center">
 
 		<div class="card">
-			<h3>Show Options on Page Load</h3>
+			<h3>Include Images</h3>
 
-			<a-select active>
-				<option>One</option>
-				<option>Two</option>
-			</a-select>
+			<div class="flex top">
+				<a-select active>
+					<option>
+						<img slot="icon" src="extra/sample.jpg">
+						One
+					</option>
+					<option>
+						<img slot="icon" src="extra/genderless.svg">
+						Two
+					</option>
+
+					<option>
+						<svg style="fill:salmon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc. --><path d="M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z"/></svg>
+						Three
+					</option>
+				</a-select>
+
+				<a-code highlight>
+					<textarea>
+						<a-select>
+							<option>
+								<!-- image [jpg] -->
+								<img slot="icon" src="extra/sample.jpg">
+								One
+							</option>
+							<option>
+								<!-- image [svg] -->
+								<img slot="icon" src="extra/sample.svg">
+								Two
+							</option>
+
+							<option>
+								<!-- svg -->
+								<svg
+									style="fill:salmon"
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 512 512">
+										<path d="..."/>
+								</svg>
+								Three
+							</option>
+						</a-select>
+					</textarea>
+				</a-code>
+			</div>
+		</div>
+
+		<div>
+			<div class="card">
+			<h3>Disable Input</h3>
+
+				<div class="flex top">
+					<a-select disabled>
+						<option>One</option>
+						<option>Two</option>
+					</a-select>
+
+					<a-code highlight>
+						<textarea>
+							<a-select disabled>
+								<option>...</option>
+							</a-select>
+						</textarea>
+					</a-code>
+				</div>
+			</div>
+
+			<div class="card">
+			<h3>Default Value</h3>
+
+				<div class="flex top">
+					<a-select value="Two">
+						<option>One</option>
+						<option>Two</option>
+					</a-select>
+
+					<a-code highlight>
+						<textarea>
+							<a-select value="Two">
+								<option>...</option>
+							</a-select>
+							or
+							<a-select>
+								<option selected>...</option>
+							</a-select>
+						</textarea>
+					</a-code>
+				</div>
+			</div>
+
+			<div class="card">
+			<h3>Select [multiple] with Default Values</h3>
+
+				<div class="flex top">
+					<a-select multiple value="One, Three">
+						<option>One</option>
+						<option>Two</option>
+						<option>Three</option>
+					</a-select>
+
+					<a-code highlight>
+						<textarea>
+							<a-select multiple value="One, Three">
+								<option>...</option>
+							</a-select>
+							or
+							<a-select multiple>
+								<option selected>One</option>
+								<option>Two</option>
+								<option selected>Three</option>
+							</a-select>
+						</textarea>
+					</a-code>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+		<h3>Using the "size" Attribute</h3>
+
+			<div class="flex top">
+				<a-select size="2">
+					<option>One</option>
+					<option>Two</option>
+				</a-select>
+
+				<a-code highlight>
+					<textarea>
+						<a-select size="2">
+							<option>...</option>
+						</a-select>
+					</textarea>
+				</a-code>
+			</div>
+		</div>
+
+		<div class="card">
+		<h3>Show Options on Page Load</h3>
 
 			<a-code highlight>
 				<textarea>
@@ -434,11 +575,50 @@
 		</div>
 
 		<div class="card">
-			<h3>Automatic Focus on Page Load</h3>
-			<a-select autofocus>
-				<option>One</option>
-				<option>Two</option>
-			</a-select>
+		<h3>Require Input</h3>
+
+			<a-code highlight>
+				<textarea>
+					<a-select required>
+						<option>...</option>
+					</a-select>
+				</textarea>
+			</a-code>
+		</div>
+
+		<div class="card">
+		<h3>Custom Name</h3>
+
+			<a-code highlight>
+				<textarea>
+					<a-select name="my-select">
+						<option>...</option>
+					</a-select>
+				</textarea>
+			</a-code>
+		</div>
+
+		<div class="card">
+		<h3>Attach to a Particular Form</h3>
+
+			<a-code highlight>
+				<textarea>
+					<form>
+						<a-select>...</a-select>
+					</form>
+					OR
+					<a-select form="my-form">
+						...
+					</a-select>
+
+					<form id="my-form">
+					</form>
+				</textarea>
+			</a-code>
+		</div>
+
+		<div class="card">
+		<h3>Automatic Focus on Page Load</h3>
 
 			<a-code highlight>
 				<textarea>
@@ -448,6 +628,69 @@
 				</textarea>
 			</a-code>
 		</div>
+
+		<div class="card">
+		<h3>Theming</h3>
+
+			<style>
+				a-select#demo-theme {
+					--accent-color: orange;
+					--accent-text: white;
+					--background: linear-gradient(darkorange, darkred);
+					--border-color: lime;
+					--border-radius: 10px;
+					--hover-brightness: .9;
+					--cursor: pointer;
+					--option-height: 35px;
+					--pad: .5rem;
+					--text-color: rgb(40,40,40);
+					--transition-duration: .5s;
+				}
+
+				@media (prefers-color-scheme: dark) {
+					a-select#demo-theme {
+						--text-color: white;
+						--hover-brightness: .75;
+					}
+				}
+			</style>
+			<a-select id="demo-theme">
+				<option>One</option>
+				<option>Two</option>
+				<option>Three</option>
+			</a-select>
+
+			<a-code highlight>
+				<textarea>
+					<style>
+						a-select#demo-theme {
+							--accent-color: orange;
+							--accent-text: white;
+							--background: linear-gradient(darkorange, darkred);
+							--border-color: lime;
+							--border-radius: 10px;
+							--hover-brightness: .9;
+							--cursor: pointer;
+							--option-height: 35px;
+							--pad: .5rem;
+							--text-color: rgb(40,40,40);
+							--transition-duration: .5s;
+						}
+
+						@media (prefers-color-scheme: dark) {
+							a-select#demo-theme {
+								--text-color: white;
+								--hover-brightness: .75;
+							}
+						}
+					</style>
+					<a-select id="demo-theme">
+						<option>...</option>
+					</a-select>
+				</textarea>
+			</a-code>
+		</div>
+
 	</section>
 
 	<script>

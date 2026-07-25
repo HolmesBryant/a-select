@@ -67,10 +67,6 @@ div[data-value] {
 div[data-value]:last-child
 { border: none; }
 
-select:disabled {
-	cursor: not-allowed;
-}
-
 div:focus,
 div[data-value]:not([disabled]):hover {
 	filter: brightness(var(--hover-brightness));
@@ -114,12 +110,15 @@ option {
 
 select {
 	background: var(--background);
+	border-color: var(--border-color);
 	border-radius: var(--border-radius);
 	color: var(--text-color);
 	cursor: var(--cursor);
 	padding: var(--pad);
 }
 
+select:disabled
+{ cursor: not-allowed }
 
 select[multiple] {
 	appearance: none;
@@ -130,9 +129,8 @@ select[multiple] {
 	position: absolute;
 }
 
-svg {
-	fill: var(--text-color);
-}
+svg
+{ fill: var(--text-color) }
 
 #options {
 	height: 0px;

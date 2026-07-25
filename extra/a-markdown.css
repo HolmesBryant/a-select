@@ -1,0 +1,65 @@
+a-markdown {
+	--bg1-color: linen;
+	--bg2-color: hsl(30, 66.667%, 97%);
+	--border-color: silver;
+	--text-color: rgb(20, 20, 20);
+  --cell-max-width: 100px;
+  --pad: .5rem;
+  display: block;
+  opacity: 1;
+
+  background: var(--bg2-color);
+  padding: var(--pad);
+  transition: opacity 0.5s;
+
+  &:empty { opacity: 0; }
+
+  & code
+  { padding: 0; }
+
+  & pre {
+  	background: var(--bg1-color);
+  	border-radius: 5px;
+  	color:	var(--text-color);
+  	overflow-x: auto;
+  	padding: 10px;
+  	margin-bottom: 1rem;
+  }
+
+	& table {
+	  border-collapse: collapse;
+	  margin-bottom: 1rem;
+	  width: 100%;
+	}
+
+	& th, td {
+	  border: 1px solid var(--border-color);
+	  padding: var(--pad);
+	  overflow-x: auto;
+	  max-width: var(--cell-max-width);
+	}
+
+	& .error { color: darkred; }
+}
+
+@media (min-width: 640px) {
+	a-markdown {
+	  --cell-max-width:  360px;
+	  --pad: 1rem;
+	}
+}
+
+@media (prefers-color-scheme: dark) {
+	a-markdown {
+		--bg1-color: rgb(20, 20, 20);
+		--bg2-color: rgb(40, 40, 40);
+		--border-color: dimgray;
+		--text-color: white;
+	}
+}
+
+a-markdown[display="html"],
+a-markdown[display="markdown"] {
+	font-family: ui-monospace;
+	white-space: pre;
+}
