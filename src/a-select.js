@@ -298,8 +298,6 @@ export default class ASelect extends HTMLElement {
         } else {
           this.active = false;
         }
-
-        this.#setSelected(this.#value, false);
         break;
 
       case 'required':
@@ -407,6 +405,8 @@ export default class ASelect extends HTMLElement {
       if (this.#disabled) return;
       const option = event.target.closest('div');
       if (option.hasAttribute('disabled')) return;
+      if (option.dataset.type == "optgroup") return;
+
       this.#setSelected(option.dataset.value);
       this.#setValue();
       if (this.#multiple) return;
@@ -425,16 +425,14 @@ export default class ASelect extends HTMLElement {
     }
 
     window.addEventListener('pointerdown', event => {
-      if (event.target.closest('a-select')) return;
-      // this._updateBound = false;
-      if (!this.#multiple && this.#active) this.active = false;
-    });
 
-    /*if (this._internals.form) {
-      this._internals.form.addEventListener('reset', event => {
-        this.#setSelected(this.getAttribute('value'));
-      }, { signal: this.#abortController.signal });
-    }*/
+      if (event.target.closest('a-select')) return;
+        if (this.#multiple || !this.#active) return;
+      setTimeout( () => {
+        if (this.#multiple) return;
+        if (this.#active) this.active = false;
+      }, 100);
+    }, { signal: this.#abortController.signal });
   }
 
   /**
@@ -451,6 +449,7 @@ export default class ASelect extends HTMLElement {
     this.#resetController = new AbortController();
     this._internals.form.addEventListener('reset', event => {
       this.#setSelected(this.getAttribute('value'));
+      this.#setValue(this.getAttribute('value'));
     }, { signal: this.#resetController.signal });
   }
 
@@ -517,7 +516,13 @@ export default class ASelect extends HTMLElement {
    */
   #deselectOthers(selected) {
     Array.from(this.#optionContainer.children).map( item => {
-      if (item !== selected) item.removeAttribute('aria-selected');
+      if (item.dataset.type === 'optgroup') {
+        Array.from(item.children).map(subItem => {
+          if (subItem !== selected) subItem.removeAttribute('aria-selected');
+        });
+      } else {
+        if (item !== selected) item.removeAttribute('aria-selected');
+      }
     });
   }
 
@@ -605,10 +610,17 @@ export default class ASelect extends HTMLElement {
    * @private
    */
   #populateSelect() {
+    this.#select.innerHTML = "";
+    // on first run, get items from this.children.
+    // but when disconnected/reconnected, this.children is empty so get items from this.#optionContainer.children
     this.#items = Array.from(this.children) || Array.from(this.#optionContainer.children);
     this.#items.forEach( item => {
-      if (this.#value.includes(item.value)) item.selected = true;
-      this.#select.append(item);
+      if (!item instanceof HTMLOptionElement || !item instanceof HTMLOptGroupElement) {
+        console.error(`a-select: Skipping option. Option items must be either "option" or "optgroup". This item is a ${item.localName}`, this);
+      } else {
+        if (this.#value.includes(item.value)) item.selected = true;
+        this.#select.append(item);
+      }
     });
 
     this.#values = [...this.#select.options].map(option => option.value);
@@ -627,9 +639,39 @@ export default class ASelect extends HTMLElement {
     this.#optionContainer.innerHTML = "";
 
     this.#items.forEach( item => {
+      let label;
       const div_a = div.cloneNode();
-      div_a.innerHTML = item.innerHTML;
-      div_a.dataset.value = item.value;
+
+      if (item instanceof HTMLOptionElement) {
+        div_a.innerHTML = item.innerHTML;
+        div_a.dataset.value = item.value;
+      } else if (item instanceof HTMLOptGroupElement) {
+
+        // optgroup element
+        div_a.dataset.type = 'optgroup';
+        if (item.hasAttribute('label')) {
+          label = document.createElement('strong');
+          label.textContent = item.getAttribute('label');
+          div_a.append(label);
+        }
+
+        for (const opt of item.children) {
+          if (opt instanceof HTMLOptionElement) {
+            const div_b = div.cloneNode();
+            div_b.innerHTML = opt.innerHTML;
+            div_b.dataset.value = opt.value;
+
+            for (const attr of opt.attributes) {
+              div_b.setAttribute(attr.name, attr.value);
+            }
+
+            div_a.append(div_b);
+          } else if (label) {
+            label.prepend(opt.cloneNode());
+          }
+        }
+      }
+
       for (const attr of item.attributes) {
         div_a.setAttribute(attr.name, attr.value);
       }
@@ -648,6 +690,11 @@ export default class ASelect extends HTMLElement {
    * @param {boolean} [toggle=true] - If true     (for multiple mode), false otherwise.
    */
   #setSelected(value, toggle = true) {
+    if (value === null) {
+      this.#deselectOthers(null);
+      this.#select.value = "";
+      return;
+    }
     if (!Array.isArray(value)) value = [value];
     for (const idx in value) {
       const val = value[idx];
@@ -836,7 +883,6 @@ export default class ASelect extends HTMLElement {
   get active() { return this.#active }
   set active(value) {
     value = value != null && value !== false;
-    console.log(value)
     this.toggleAttribute('active', value);
   }
 

@@ -1,0 +1,123 @@
+test-results {
+	/****** Translations ******/
+
+	--info: "🛈";
+	--pass:  "👍";
+	--fail: "👎";
+	--error: "😱";
+	--done:  "🏁 ✔ 🏁";
+	--result: "🎯 ";
+	--expected: "🤔 ";
+	--line: "#️⃣ ";
+
+	/****** Backgrounds ******/
+
+	--main-bg: linen;
+	--info-bg: orange;
+	--pass-bg: green;
+	--fail-bg: red;
+	--done-bg: dodgerblue;
+	--error-bg: fuchsia;
+
+	/****** Misc ******/
+
+	--text-color: white;
+	--text2-color: black;
+	--border-color: silver;
+	--min: 35px;
+	--pad: .25rem;
+	--gap: 1rem;
+
+	/*******************************/
+
+	& .info::before {
+		color: var(--text-color);
+		content: var(--info);
+	}
+
+	& .info {
+		background: var(--info-bg);
+		color: var(--text-color);
+	}
+
+	& .pass,
+	& details[open] .pass {
+		background: var(--pass-bg);
+		color: var(--text-color);
+	}
+
+	& .pass::before {
+		color: var(--text1-color);
+		content: var(--pass);
+		font-weight: bold;
+	}
+
+	& .fail,
+	& details[open] .fail {
+		background: var(--fail-bg);
+		color: var(--text-color);
+	}
+
+	& .fail::before {
+		content: var(--fail);
+		color: var(--text-color);
+		font-weight: bold;
+	}
+
+	& .error,
+	& details[open] .error
+	{ background: var(--error-bg); }
+
+	& .error::before {
+		content: var(--error);
+		color: var(--text-color);
+		font-weight: bold;
+	}
+
+	& .done
+	{ background: var(--done-bg); }
+
+	& .done::before {
+		content: var(--done);
+		font-weight: bold;
+	}
+
+	& .result::before {
+		content: var(--result);
+		font-weight: bold;
+	}
+
+	& .expected::before {
+		content: var(--expected);
+		font-weight: bold;
+	}
+
+	& .line::before {
+		content: var(--line);
+		font-weight: bold;
+	}
+
+	& details {
+		color: var(--text2-color);
+	}
+
+	& summary {
+		color: var(--text-color);
+		cursor: pointer;
+		font-size: 1rem;
+		font-weight: normal;
+		padding: var(--pad);
+	}
+
+	& summary > * {
+		margin: 0 var(--gap);
+	}
+
+	& > * div {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--gap);
+		padding: var(--pad);
+	}
+
+}

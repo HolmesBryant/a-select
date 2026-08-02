@@ -4,8 +4,8 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>a-select custom element</title>
-	<!-- <script type="module" src="src/a-select.js"></script> -->
-	<script type="module" src="dist/a-select.min.js"></script>
+	<script type="module" src="src/a-select.js"></script>
+	<!-- <script type="module" src="dist/a-select.min.js"></script> -->
 
 	<script type="module" src="extra/a-bind.min.js"></script>
 	<script type="module" src="extra/a-menu.min.js"></script>
@@ -14,7 +14,7 @@
 	<!-- <script type="module" src="extra/a-markdown.min.js"></script> -->
 
 	<link rel="stylesheet" href="extra/styles.css">
-	<link rel="stylesheet" href="dist/a-select.css">
+	<!-- <link rel="stylesheet" href="dist/a-select.css"> -->
 	<link rel="stylesheet" href="extra/a-menu.css">
 	<link rel="stylesheet" href="extra/a-color.css">
 	<link rel="stylesheet" href="extra/a-code.css">
@@ -35,17 +35,19 @@
 		</details>
 	</header>
 
+	<a href="tests/index.html" target="_blank">Tests</a>
+
 	<!-- demo -->
 	<h2>Demo</h2>
 
-	<section class="flex top">
+	<section class="flex stretch">
 		<a-bindgroup model="dom:#demo" class="flex240">
 			<a-menu
 				open
 				type="mobile"
 				show-icon=""
 				>
-				<a-menu open group="demo-menu">
+				<a-menu group="demo-menu" open>
 				<b slot="label">Attributes</b>
 					<!-- active -->
 					<div class="flex">
@@ -166,8 +168,12 @@
 					    <input id="demo-name">
 					  </a-bind>
 			    </div>
+				</a-menu>
 
-			    <!-- form -->
+				<a-menu group="demo-menu">
+				<b slot="label">Form Assoc</b>
+
+					<!-- form -->
 			    <div class="flex column">
 				    <div class="flex flex100 space-between">
 				    	<label for="demo-form">form</label>
@@ -180,10 +186,42 @@
 					    </a-bind>
 				    </div>
 				  </div>
+
+				  <!-- Forms -->
+					<div class="flex flex1 column card">
+						<strong style="color:var(--accent-color)">Active Form:
+							<a-bind model="dom:#demo" prop="form" elem-prop="textContent">
+								<b id="demo-form-name"></b>
+							</a-bind>
+						</strong>
+
+						<form
+							id="form-one"
+							name="Form One"
+							onsubmit="logFormData(event)">
+							<button>Submit (form-one)</button>
+							<button type="reset">Reset</button>
+						</form>
+
+						<form
+							id="form-two"
+							name="Form Two"
+							onsubmit="logFormData(event)">
+							<button>Submit (form-two)</button>
+							<button type="reset">Reset</button>
+						</form>
+					</div>
+
+					<!-- Output -->
+						<div class="card flex column">
+							<Strong>Submitted Data</strong>
+							<!-- form data -->
+							<output id="demo-form-data"></output>
+						</div>
 				</a-menu>
 
 				<a-menu group="demo-menu">
-					<b slot="label">Theming</b>
+				<b slot="label">Theming</b>
 
 					<!-- background -->
 					<div class="flex">
@@ -338,84 +376,49 @@
 			</a-menu>
 		</a-bindgroup>
 
-		<div class="flex flex1 column stretch">
+		<!-- A-Select -->
+		<div class="flex flex1 column card">
+			<h4>a-select</h4>
 
-			<div class="flex stretch">
-				<!-- A-Select -->
-				<div class="flex flex1 column card" style="overflow:visible">
-					<h4>Input</h4>
+			<a-select
+				active
+				multiple
+				id="demo"
+				name="demo"
+				form="form-one">
+				<option value="">Select...</option>
 
-					<a-select
-						id="demo"
-						name="demo"
-						value="Image"
-						form="form-one">
-						<option value="">Select...</option>
+				<option>No Icon</option>
 
-						<option>No Icon</option>
+				<option>
+					<img src="extra/sample.jpg">
+					Image
+				</option>
 
-						<option>
-							<img slot="icon" src="extra/sample.jpg">
-							Image
-						</option>
+				<option value="svg-url">
+					<img src="extra/address-book.svg">
+					Image(SVG)
+				</option>
 
-						<option value="svg-url">
-							<img src="extra/address-book.svg">
-							Image(SVG)
-						</option>
+				<optgroup label="Option Group">
+					<img src="extra/sample.jpg">
+					<option>Sub One</option>
+					<option>Sub Two</option>
+				</optgroup>
 
-						<option value="svg-inline">
-							<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-							  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
-							</svg>
-							Inline SVG
-						</option>
+				<option value="svg-inline">
+					<svg height="35" width="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+					  <polygon points="50,5 80,45 95,60 60,75 70,100 50,70 30,100 40,75 5,60 20,45"/>
+					</svg>
+					Inline SVG
+				</option>
 
-						<option value="unicode">
-							<b style="font-size:25px; line-height:1.2">☯</b>
-							Unicode Symbol
-						</option>
-					</a-select>
-				</div>
-
-				<!-- Forms -->
-				<div class="flex flex1 column card">
-					<h4>Active Form:
-						<a-bind model="dom:#demo" prop="form" elem-prop="textContent">
-							<b id="demo-form-name"></b>
-						</a-bind>
-					</h4>
-
-					<div id="demo-forms" class="flex column">
-						<form
-							id="form-one"
-							name="Form One"
-							onsubmit="logFormData(event)">
-							<button>Submit (form-one)</button>
-							<button type="reset">Reset</button>
-						</form>
-
-						<form
-							id="form-two"
-							name="Form Two"
-							onsubmit="logFormData(event)">
-							<button>Submit (form-two)</button>
-							<button type="reset">Reset</button>
-						</form>
-					</div>
-				</div>
-			</div>
-
-			<!-- Output -->
-			<div class="card">
-				<h4>Output (Form Submission)</h4>
-				<!-- form data -->
-				<output id="demo-form-data"></output>
-			</div>
+				<option value="unicode">
+					<b style="font-size:25px; line-height:1.2">☯</b>
+					Unicode Symbol
+				</option>
+			</a-select>
 		</div>
-
-
-
 	</section>
 
 	<!-- examples -->
@@ -424,16 +427,16 @@
 	<section class="flex stretch center">
 
 		<div class="card">
-			<h3>Include Images</h3>
+		<h3>Include Images</h3>
 
 			<div class="flex top">
-				<a-select active>
+				<a-select size="3">
 					<option>
-						<img slot="icon" src="extra/sample.jpg">
+						<img src="extra/sample.jpg">
 						One
 					</option>
 					<option>
-						<img slot="icon" src="extra/genderless.svg">
+						<img src="extra/genderless.svg">
 						Two
 					</option>
 
@@ -448,17 +451,17 @@
 						<a-select>
 							<option>
 								<!-- image [jpg] -->
-								<img slot="icon" src="extra/sample.jpg">
+								<img src="extra/sample.jpg">
 								One
 							</option>
 							<option>
 								<!-- image [svg] -->
-								<img slot="icon" src="extra/sample.svg">
+								<img src="extra/sample.svg">
 								Two
 							</option>
 
 							<option>
-								<!-- svg -->
+								<!-- inline svg -->
 								<svg
 									style="fill:salmon"
 									xmlns="http://www.w3.org/2000/svg"
@@ -477,7 +480,7 @@
 			<div class="card">
 			<h3>Disable Input</h3>
 
-				<div class="flex top">
+				<!-- <div class="flex top"> -->
 					<a-select disabled>
 						<option>One</option>
 						<option>Two</option>
@@ -490,7 +493,25 @@
 							</a-select>
 						</textarea>
 					</a-code>
-				</div>
+				<!-- </div> -->
+			</div>
+
+			<div class="card">
+			<h3>Disable an Option</h3>
+
+				<a-select>
+					<option>One</option>
+					<option disabled>Two</option>
+				</a-select>
+
+				<a-code highlight>
+					<textarea>
+						<a-select>
+							<option>One</option>
+							<option disabled>Two</option>
+						</a-select>
+					</textarea>
+				</a-code>
 			</div>
 
 			<div class="card">
@@ -546,7 +567,7 @@
 		<div class="card">
 		<h3>Using the "size" Attribute</h3>
 
-			<div class="flex top">
+			<!-- <div class="flex top"> -->
 				<a-select size="2">
 					<option>One</option>
 					<option>Two</option>
@@ -559,7 +580,29 @@
 						</a-select>
 					</textarea>
 				</a-code>
-			</div>
+			<!-- </div> -->
+		</div>
+
+		<div class="card">
+		<h3>Include Option Group</h3>
+
+			<a-select>
+				<option>One</option>
+				<optgroup label="Optgroup">
+					<option>Two</option>
+				</optgroup>
+			</a-select>
+
+			<a-code highlight>
+				<textarea>
+					<a-select>
+						<option>One</option>
+						<optgroup label="Optgroup">
+							<option>Two</option>
+						</optgroup>
+					</a-select>
+				</textarea>
+			</a-code>
 		</div>
 
 		<div class="card">
@@ -634,8 +677,8 @@
 
 			<style>
 				a-select#demo-theme {
-					--accent-color: orange;
-					--accent-text: white;
+					--accent-color: gold;
+					--accent-text: black;
 					--background: linear-gradient(darkorange, darkred);
 					--border-color: lime;
 					--border-radius: 10px;
@@ -643,7 +686,7 @@
 					--cursor: pointer;
 					--option-height: 35px;
 					--pad: .5rem;
-					--text-color: rgb(40,40,40);
+					--text-color: white;
 					--transition-duration: .5s;
 				}
 
@@ -664,8 +707,8 @@
 				<textarea>
 					<style>
 						a-select#demo-theme {
-							--accent-color: orange;
-							--accent-text: white;
+							--accent-color: gold;
+							--accent-text: black;
 							--background: linear-gradient(darkorange, darkred);
 							--border-color: lime;
 							--border-radius: 10px;
@@ -673,7 +716,7 @@
 							--cursor: pointer;
 							--option-height: 35px;
 							--pad: .5rem;
-							--text-color: rgb(40,40,40);
+							--text-color: white;
 							--transition-duration: .5s;
 						}
 
