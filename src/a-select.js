@@ -238,6 +238,7 @@ export default class ASelect extends HTMLElement {
 
       case 'autofocus':
         this.#autofocus = this.hasAttribute('autofocus');
+        this.#select.toggleAttribute('autofocus', this.#autofocus);
         if (this.#autofocus && this.#multiple) {
           this.#optionContainer.tabIndex = 0;
           this.#optionContainer.focus();
@@ -245,6 +246,8 @@ export default class ASelect extends HTMLElement {
           this.#optionContainer.removeAttribute('tab-index');
         } else if (this.#autofocus) {
           this.#select.focus();
+        } else {
+          this.#select.blur();
         }
         break;
 
@@ -272,9 +275,9 @@ export default class ASelect extends HTMLElement {
         break;
 
       case 'form':
-        const form = document.getElementById(newval);
+        const form = document.getElementById(newval) || this.closest('form');
         if (!form || !(form instanceof HTMLFormElement)) {
-          console.error(`a-select.form - no form element with id "${newval}" was found.`, this);
+          console.error(`a-select.form - no form parent or form with id "${newval}" was found.`, this);
           return;
         }
 
@@ -313,12 +316,18 @@ export default class ASelect extends HTMLElement {
           console.error(`a-select.size must be a number; value given was ${newval}`, this);
         } else {
           this.#size = s;
+          this.#select.size = s;
           if (this.#connected) this.#setSize();
         }
         break;
 
       case 'value':
-        newval = newval.split(',').map( v => v.trim() );
+        if (newval === 'null') {
+          newval = null;
+        } else {
+          newval = newval.split(',').map( v => v.trim() );
+        }
+
         this.#value = newval;
         if (this.#connected) {
           this.#setSelected(this.#value);
@@ -980,12 +989,14 @@ export default class ASelect extends HTMLElement {
     this.setAttribute('size', value);
   }
 
+  get valid() { return this._internals.validity.valid }
+
   /**
    * Gets or sets the current selected value(s) as an array of strings.
    * Updates the HTML 'value' attribute (comma-separated string) when setting.
    * @type {string | string[]}
    */
-  get value() { return this.#value }
+  get value() { return this.#value.lenght > 1 ? this.#value : this.#value[0] }
   set value(value) { this.setAttribute('value', value) }
 
   /**
