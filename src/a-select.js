@@ -275,18 +275,15 @@ export default class ASelect extends HTMLElement {
         break;
 
       case 'form':
-        const form = document.getElementById(newval) || this.closest('form');
-        if (!form || !(form instanceof HTMLFormElement)) {
-          console.error(`a-select.form - no form parent or form with id "${newval}" was found.`, this);
-          return;
-        }
-
-        this.#form = newval;
+        this.#form = newval || this.closest('form')?.id;
         this.#select.setAttribute('form', newval);
-        this.#addResetListener();
-        if (this.#connected && this.#convertMulti) {
-          this.#addSubmitListener();
-        }
+        setTimeout(() => {
+          // console.warn(this._internals.form);
+          // this.#addResetListener();
+          if (this.#connected && this.#convertMulti) {
+            this.#addSubmitListener();
+          }
+        }, 100);
         break;
 
       case 'multiple':
@@ -297,10 +294,15 @@ export default class ASelect extends HTMLElement {
         if (!this.#connected) return;
         if (this.#multiple) {
           this.#select.tabIndex = "-1";
+          this.#setSelected(this.#value);
+          this.#setSelected(this.#value);
           this.active = true;
         } else {
           this.active = false;
+          this.#setSelected(this.#value[0]);
+          this.#setValue(this.#value[0]);
         }
+
         break;
 
       case 'required':
@@ -349,7 +351,13 @@ export default class ASelect extends HTMLElement {
    */
   connectedCallback() {
     this.#abortController = new AbortController();
-    if (!this.#name) this.name = 'a-select_' + Math.random().toString(36).slice(2, 8);
+    const rando = 'a-select_' + Math.random().toString(36).slice(2, 8);
+    if (!this.#name) this.name = rando;
+    if (!this.#form) {
+      const form = this._internals.form;
+      if (form && !form.id) form.id = rando;
+      this.#form = form?.id;
+    }
     if (this.#multiple) {
       this.#select.tabIndex = "-1";
       this.active = true;
@@ -395,7 +403,7 @@ export default class ASelect extends HTMLElement {
 
     this.#slot.addEventListener('slotchange', () => {
       if (this.children.length === 0) return;
-      this.#populateSelect();
+      this.#populateSelect(false);
       this.#setSelected(this.#value, false);
     }, { signal: signal });
 
@@ -512,6 +520,7 @@ export default class ASelect extends HTMLElement {
 
     setTimeout( () => {
       input.disabled = false;
+      if (this.debug) console.warn(this._internals.form.elements)
       hiddenElems.forEach( elem => {
         elem.remove();
       });
@@ -603,6 +612,48 @@ export default class ASelect extends HTMLElement {
   }
 
   /**
+   * Moves each member of `options` above `before` in #optionContainer and #select.
+   * Used with add(option, before);
+   *
+   * @param {array} options - An array of option elements to move
+   * @param {string|number} before - The string value or number index of the reference option.
+   */
+  #moveOption(options = [], before) {
+    let beforeDiv;
+    let beforeOption;
+    const val = before.value || before.label || before;
+
+    if (!isNaN(before) && before <= this.#optionContainer.children.length) {
+      beforeDiv = this.#optionContainer.children[before];
+      beforeOption = this.#select.children[before];
+    } else {
+      beforeDiv = this.#optionContainer.querySelector(`[data-value="${before}"]`);
+      beforeOption = [...this.#select.children].reduce( (found, opt) => {
+        const val = opt.value || opt.label;
+        if (val === before) return found || opt;
+        return found;
+      });
+    }
+
+    if (!beforeDiv || !beforeOption) {
+      console.warn(`a-select.add(option, before): Cannot find the element having value (${before}) to insert before.`);
+      return;
+    }
+
+    options.forEach(option => {
+      const optvalue = option.value || option.label || option;
+      const div = this.#optionContainer.querySelector(`[data-value="${optvalue}"]`);
+
+      if (div) {
+        this.#optionContainer.insertBefore(div, beforeDiv);
+        this.#select.insertBefore(option, beforeOption);
+      } else {
+        console.warn(`a-select.add(): Error moving option with value ${optvalue}. Option was appended instead.`);
+      }
+    });
+  }
+
+  /**
    * Adjusts the current focused index in the list by an offset (for arrow key navigation).
    * Wraps around using modulo arithmetic.
    * @private
@@ -618,11 +669,11 @@ export default class ASelect extends HTMLElement {
    * Updates selection based on current value attribute and triggers validity checks.
    * @private
    */
-  #populateSelect() {
-    this.#select.innerHTML = "";
+  #populateSelect(replace = true) {
+    if (replace) this.#select.innerHTML = "";
     // on first run, get items from this.children.
     // but when disconnected/reconnected, this.children is empty so get items from this.#optionContainer.children
-    this.#items = Array.from(this.children) || Array.from(this.#optionContainer.children);
+    this.#items = (this.children.length) ? Array.from(this.children) : Array.from(this.#optionContainer.children);
     this.#items.forEach( item => {
       if (!item instanceof HTMLOptionElement || !item instanceof HTMLOptGroupElement) {
         console.error(`a-select: Skipping option. Option items must be either "option" or "optgroup". This item is a ${item.localName}`, this);
@@ -635,7 +686,7 @@ export default class ASelect extends HTMLElement {
     this.#values = [...this.#select.options].map(option => option.value);
     this.#setValue();
     this.#setValidity(this.#getInvalidStates());
-    this.#setOptions();
+    this.#setOptions(replace);
   }
 
   /**
@@ -643,10 +694,9 @@ export default class ASelect extends HTMLElement {
    * Applies tabindex for multiple mode and calculates height if size is set.
    * @private
    */
-  #setOptions() {
+  #setOptions(replace = true) {
+    if (replace) this.#optionContainer.innerHTML = "";
     const div = document.createElement('div');
-    this.#optionContainer.innerHTML = "";
-
     this.#items.forEach( item => {
       let label;
       const div_a = div.cloneNode();
@@ -691,41 +741,38 @@ export default class ASelect extends HTMLElement {
     this.#setSize();
   }
 
-  /**
-   * Updates the selection state of both the internal <select> and the visible option container divs.
-   * Handles single/multiple logic, toggling aria-selected attributes, and deselecting others in single mode.
-   * @private
-   * @param {string | string[]} value - The value(s) to select. Can be a string or array of strings.
-   * @param {boolean} [toggle=true] - If true     (for multiple mode), false otherwise.
-   */
   #setSelected(value, toggle = true) {
-    if (value === null) {
-      this.#deselectOthers(null);
+    if (value === null || value === undefined) {
       this.#select.value = "";
+      this.#deselectOthers(null);
       return;
     }
-    if (!Array.isArray(value)) value = [value];
-    for (const idx in value) {
-      const val = value[idx];
-      const selected = this.#optionContainer.querySelector(`[data-value="${val}"]`);
-      if (!selected) {
-        console.warn(`There is no option whose value is "${val}" (case sensitive)`);
-        continue;
-      }
 
-      for (const option of this.#select.options) {
-        if (value.includes(option.value)) {
-          if (this.#multiple) {
-            if (toggle) option.selected = !option.selected;
-            selected.toggleAttribute('aria-selected', option.selected);
-          } else {
-            option.selected = true;
-            selected.toggleAttribute('aria-selected', true);
-          }
-          if (!this.#multiple) this.#deselectOthers(selected);
+    if (!Array.isArray(value)) value = [value];
+
+    value.forEach(val => {
+      this.#setSelectedItem(val, toggle);
+    });
+  }
+
+  #setSelectedItem(value, toggle = true) {
+    let selected;
+    const options = Array.from(this.#select.options);
+    options.forEach(option => {
+      if (option.value === value) {
+        selected = this.#optionContainer.querySelector(`[data-value="${option.value}"]`);
+
+        if (this.#multiple && toggle) {
+          option.selected = !option.selected;
+        } else {
+          option.selected = true;
         }
+
+        if (selected) selected.toggleAttribute('aria-selected', option.selected);
       }
-    }
+    });
+
+    if (!this.#multiple) this.#deselectOthers(selected);
   }
 
   /**
@@ -790,31 +837,43 @@ export default class ASelect extends HTMLElement {
    * @param {HTMLElement | string} option - The option to add, or text content for a new <option>.
    * @param {HTMLElement | number} [before] - An existing element to insert before, or an index (-1 for end).
    */
-  add(option, before) {
-    const options = this.#optionContainer;
+  async add(option, before) {
+    let newOptions = [];
+    const frag = new DocumentFragment();
+
     try {
       if (typeof option === 'string') {
+        // single item or comma separated items
         const newOption = document.createElement('option');
-        newOption.text = option;
-        option = newOption;
-      }
-
-      if (before instanceof HTMLElement && options.contains(before)) {
-        options.insertBefore(option, before);
-      } else if (!isNaN(before) && before >= 0 && before <= options.children.length) {
-        const index = Math.min(before, options.children.length - 1);
-        const referenceNode = index < options.children.length ? options[index] : null;
-        options.insertBefore(option, referenceNode);
+        const options = option.split(',').map(o => o.trim());
+        options.forEach(item => {
+          const opt = newOption.cloneNode();
+          opt.textContent = item;
+          if (before) newOptions.push(opt);
+          frag.append(opt);
+        });
+      } else if (Array.isArray(option)) {
+        // array of option elements
+        option.forEach(opt => {
+          if (before) newOptions.push(opt);
+          frag.append(opt);
+        });
+      } else if (option instanceof HTMLOptionElement || option instanceof HTMLOptGroupElement) {
+        // single option element or optgroup element containing children which are option elements
+        if (before) newOptions.push(option);
+        frag.append(option);
       } else {
-        options.appendChild(option);
+        console.warn(`a-select.add(): requirements for new option (${option}) not met, skipping`)
       }
 
-      this.#setOptions();
+      await this.append(frag);
+
+      if (before) this.#moveOption(newOptions, before);
     } catch (error) {
       console.group('a-select.add()');
-      console.error(error);
       console.log('Instance', this);
       console.log('Params', {option: option, before: before});
+      console.error(error);
       console.groupEnd();
     }
   }
@@ -851,8 +910,8 @@ export default class ASelect extends HTMLElement {
    * @param {number} index - The zero-based index of the item to remove.
    * @returns {HTMLElement} The removed option element.
    */
-  remove(index) {
-    const item = this.#optionContainer.children[index];
+  removeOption(index) {
+    const item = this.#optionContainer.children.item(index);
     item.remove();
     this.#populateSelect();
     return item;
@@ -881,6 +940,24 @@ export default class ASelect extends HTMLElement {
       return false;
     }
   }
+
+  /*setSelected(value) {
+    const div = this.#optionContainer.querySelector(`[data-value="${value}"]`);
+    const option = [...this.#select.children].reduce( (found, opt) => {
+        const val = opt.value || opt.label;
+        if (val === value) return found || opt;
+        return found;
+      });
+
+    if (!div || !option) {
+      console.error(`Cound not find option with value (${value}) to select.`);
+      return;
+    }
+
+    div.toggleAttribute('aria-selected', true);
+    this.#deselectOthers(div);
+    option.selected = true;
+  }*/
 
   // --- Getters / Setters ---
 
@@ -996,8 +1073,18 @@ export default class ASelect extends HTMLElement {
    * Updates the HTML 'value' attribute (comma-separated string) when setting.
    * @type {string | string[]}
    */
-  get value() { return this.#value.lenght > 1 ? this.#value : this.#value[0] }
-  set value(value) { this.setAttribute('value', value) }
+  get value() { return this.#value.join(',') }
+  set value(value) {
+    if (value !== null) {
+      value = value.split(',').map( v => v.trim() );
+    }
+
+    this.#value = value;
+    if (this.#connected) {
+      this.#setSelected(this.#value, false);
+      this.#setValue();
+    }
+  }
 
   /**
    * Gets the current values from the internal <select> options as an array of strings.

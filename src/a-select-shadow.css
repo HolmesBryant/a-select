@@ -208,5 +208,6 @@ svg
 		--background: rgb(40,40,40);
 		--border-color: dimgray;
 		--hover-brightness: .75;
+		--optgroup-background: dimgray;
 	}
 }

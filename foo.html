@@ -8,11 +8,12 @@
 	<script type="module" src="src/a-select.js"></script>
 </head>
 <body>
-	<h1>Foo</h1>
-	<a-select>
+	<h1>Foo (<a href="http://localhost:8080/foo.html">Reset</a>)</h1>
+	<form>
+	<a-select multiple name="input">
 		<option value="">Select...</option>
 		<option value="one"> One </option>
-		<option>Two</option>
+		<option value="two">Two</option>
 		<optgroup label="Group One">
 			<img src="extra/sample.jpg">
 			<option>Three</option>
@@ -26,13 +27,8 @@
 		</optgroup>
 	</a-select>
 
-	<select>
-		<option>One</option>
-		<option>Two</option>
-		<optgroup label="group">
-			<option>Three</option>
-			<option>Four</option>
-		</optgroup>
-	</select>
+	<button type="submit">Submit</button>
+	<input type="reset">
+</form>
 </body>
 </html>

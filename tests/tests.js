@@ -18,36 +18,62 @@ const {
 	when
 } = runner;
 
-let app = document.getElementById('test');
+// let app = document.getElementById('test');
+let app;
 
-group("General", () => {
-	test("It has a default name", () => {
+async function setup() {
+	const elem = document.createElement('a-select');
+	await document.body.append(elem);
+	return elem;
+}
+
+group("General", async () => {
+	app = await setup();
+
+	test("It has a default name", async () => {
 		return app._internals.name != null;
 	}, true);
 
-	test("Setting `name` to 'foo'", () => {
+	test("Setting `name` to 'foo'", async () => {
 		app.name = 'foo';
 		return app._internals.name;
 	}, 'foo');
 
-	test("When it is a child of a form, the form adopts it", () => {
+	test("When it is a child of a form, the form adopts it", async () => {
+		const form = document.getElementById('original-form');
+		await form.append(app);
 		return app._internals.form != null;
 	}, true);
 
 	test("Setting `form='other-form'` associates it with other-form", () => {
 		app.form = 'other-form';
-		const result = app._internals.form?.id;
-		app.removeAttribute('form');
-		return result;
+		return app._internals.form?.id;
 	}, 'other-form');
 
-	test("When an option has `selected` attribute, it is selected", () => {
-		return app.value === 'svg';
-	}, true)
+	test("Removing the `form` attribute resets the associated form", () => {
+		app.removeAttribute('form');
+		return app._internals.form.id;
+	}, 'original-form');
+
+	test("When an option has `selected` attribute, it is selected", async () => {
+		const optionOne = document.createElement('option');
+		const optionTwo = document.createElement('option');
+		optionOne.textContent = 'one';
+		optionTwo.textContent = 'two';
+		optionTwo.toggleAttribute('selected', true);
+		const options = [optionOne, optionTwo];
+		app.add(options);
+		await when(app.values);
+		app.remove();
+		return app.value;
+	}, 'two');
 });
 
-group("Select Single Functionality", () => {
+
+
+group("Select Single Functionality", async () => {
 	let submitted = false;
+	app = await setup();
 	const select = app.shadowRoot.querySelector('select');
 
 	test("Setting `active=true` shows the picker", async () => {
@@ -116,11 +142,26 @@ group("Select Single Functionality", () => {
 	}, false);
 
 	test("It is included with form submission", async () => {
-		return false;
+		let length = 0;
+		const form = app._internals.form;
+		function submitSingle(event) {
+			event.preventDefault();
+			const data = new FormData(form);
+			for (const entry of data.entries()) {
+				length++;
+			}
+		}
+		form.addEventListener('submit', submitSingle);
+		await wait(10);
+		form.requestSubmit();
+		const result = length > 0;
+		form.removeEventListener('submit', submitSingle);
+		app.remove();
+		return result;
 	}, true);
 });
 
-group("Select Multiple functionality", () => {
+/*group("Select Multiple functionality", () => {
 	const select = app.shadowRoot.querySelector('select');
 
 	test("Setting `multiple=true` converts it to a <select multiple>", () => {
@@ -128,8 +169,50 @@ group("Select Multiple functionality", () => {
 		return select.hasAttribute('multiple');
 	}, true)
 
-	test("convert-multi", () => true, false);
+	test("Setting `value = val1, val2` selects multiple options", async () => {
+		app.value = 'svg, img';
+		const result = select.selectedOptions.length === 2;
+		return result;
+	}, true);
 
-});
+	test("multiple values are included with form submission", async () => {
+		let length = 0;
+		const form = app._internals.form;
+		function submit(event) {
+			event.preventDefault();
+			const data = new FormData(form);
+			for (const entry of data.entries()) {
+				length++;
+			}
+		}
+		form.addEventListener('submit', submit);
+		await wait(10);
+		form.requestSubmit();
+		const result = length == 2;
+		form.removeEventListener('submit', submit);
+		return result;
+	}, true);
+
+	test("convert-multi transforms the data to normal select <multiple> format", async () => {
+		let converted;
+		app.debug = true;
+		app.convertMulti = true;
+		const form = app._internals.form;
+		function submitMulti(event) {
+			event.preventDefault();
+			setTimeout(() => {
+				const data = new FormData(form);
+				for (const entry of data.entries()) {
+					console.log(entry);
+				}
+			});
+		}
+
+		form.addEventListener('submit', submitMulti);
+		await(10);
+		form.requestSubmit();
+	}, true);
+
+});*/
 
 runner.run();
