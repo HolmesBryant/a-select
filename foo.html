@@ -10,7 +10,7 @@
 <body>
 	<h1>Foo (<a href="http://localhost:8080/foo.html">Reset</a>)</h1>
 	<form>
-	<a-select multiple name="input">
+	<a-select required name="input" value="two">
 		<option value="">Select...</option>
 		<option value="one"> One </option>
 		<option value="two">Two</option>
@@ -28,7 +28,17 @@
 	</a-select>
 
 	<button type="submit">Submit</button>
+	<button type="reset">btn reset</button>
 	<input type="reset">
 </form>
+
+<!-- <form>
+	<select name="bar" required>
+		<option value="">Select...</option>
+		<option>one</option>
+		<option>two</option>
+	</select>
+	<button type="submit">Submit</button>
+</form> -->
 </body>
 </html>

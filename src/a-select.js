@@ -93,11 +93,18 @@ export default class ASelect extends HTMLElement {
   // --- Private Properties ---
 
   /**
-   * AbortController used by all event listeners
+   * AbortController used by most event listeners
    * @private
    * @type {AbortController}
    */
   #abortController;
+
+  /**
+   * Stored value of 'value' attribute. Used when form is reset.
+   * @private
+   * @type {string}
+   */
+  #originalValue;
 
   /**
    * Controller for form reset events
@@ -180,6 +187,7 @@ export default class ASelect extends HTMLElement {
     'active',
     'autofocus',
     'convert-multi',
+    'debug',
     'disabled',
     'form',
     'name',
@@ -264,6 +272,10 @@ export default class ASelect extends HTMLElement {
         }
         break;
 
+      case 'debug':
+        this.debug = this.hasAttribute('debug');
+        break;;
+
       case 'disabled':
         this.#disabled = this.hasAttribute('disabled');
         this.#select.disabled = this.#disabled;
@@ -275,13 +287,27 @@ export default class ASelect extends HTMLElement {
         break;
 
       case 'form':
-        this.#form = newval || this.closest('form')?.id;
+        if (newval === 'null' || newval === null) {
+          newval = this.closest('form')?.id;
+        }
+
+        this.#form = newval;
+
+        if (newval && !document.getElementById(newval)) {
+          console.error(`a-select.form: Cannot find form with id "${newval}".`);
+          break;
+        }
+
         this.#select.setAttribute('form', newval);
+
+        if (!newval) break;
+
         setTimeout(() => {
-          // console.warn(this._internals.form);
-          // this.#addResetListener();
-          if (this.#connected && this.#convertMulti) {
-            this.#addSubmitListener();
+          if (this.#connected) {
+            this.#addResetListener();
+            if (this.#convertMulti) {
+              this.#addSubmitListener();
+            }
           }
         }, 100);
         break;
@@ -294,7 +320,6 @@ export default class ASelect extends HTMLElement {
         if (!this.#connected) return;
         if (this.#multiple) {
           this.#select.tabIndex = "-1";
-          this.#setSelected(this.#value);
           this.#setSelected(this.#value);
           this.active = true;
         } else {
@@ -324,7 +349,9 @@ export default class ASelect extends HTMLElement {
         break;
 
       case 'value':
-        if (newval === 'null') {
+        if (newval === 'null' || newval === null) {
+          newval = null;
+        } else if (!this.#multiple && this.required && newval == '') {
           newval = null;
         } else {
           newval = newval.split(',').map( v => v.trim() );
@@ -335,6 +362,7 @@ export default class ASelect extends HTMLElement {
           this.#setSelected(this.#value);
           this.#setValue();
         }
+
         break;
     }
 
@@ -352,12 +380,16 @@ export default class ASelect extends HTMLElement {
   connectedCallback() {
     this.#abortController = new AbortController();
     const rando = 'a-select_' + Math.random().toString(36).slice(2, 8);
+
+    if (this.#value) this.#originalValue = this.#value;
     if (!this.#name) this.name = rando;
+
     if (!this.#form) {
       const form = this._internals.form;
       if (form && !form.id) form.id = rando;
       this.#form = form?.id;
     }
+
     if (this.#multiple) {
       this.#select.tabIndex = "-1";
       this.active = true;
@@ -442,13 +474,12 @@ export default class ASelect extends HTMLElement {
     }
 
     window.addEventListener('pointerdown', event => {
-
-      if (event.target.closest('a-select')) return;
-        if (this.#multiple || !this.#active) return;
-      setTimeout( () => {
+      if (event.composedPath().includes(this)) return;
+      if (this.#multiple || !this.#active) return;
+      setTimeout(() => {
         if (this.#multiple) return;
         if (this.#active) this.active = false;
-      }, 100);
+      }, 100)
     }, { signal: this.#abortController.signal });
   }
 
@@ -458,6 +489,24 @@ export default class ASelect extends HTMLElement {
    * @private
    */
   #addResetListener() {
+    if (!this.#form) {
+      console.error("a-select.addResetListener: this.form is null. Aborting operation.");
+      if (this.debug) console.trace(this.#form);
+      return;
+    }
+
+    if (!document.getElementById(this.#form)) {
+      console.error(`a-select.addResetListener: Cannot find form with id ${this.#form}. Aborting operation.`);
+      if (this.debug) console.trace(this.#form);
+      return;
+    }
+
+    if (!this._internals.form) {
+      console.error(`a-select.addResetListener: A form with id ${this.#form} was found but ElementInternals.form is null. Aborting operation.`);
+      if (this.debug) console.trace(this.#form);
+      return;
+    }
+
     if (this.#resetController) {
       this.#resetController.abort();
       this.#resetController = null;
@@ -465,7 +514,7 @@ export default class ASelect extends HTMLElement {
 
     this.#resetController = new AbortController();
     this._internals.form.addEventListener('reset', event => {
-      this.#setSelected(this.getAttribute('value'));
+      this.#setSelected(this.#originalValue);
       this.#setValue(this.getAttribute('value'));
     }, { signal: this.#resetController.signal });
   }
@@ -482,10 +531,15 @@ export default class ASelect extends HTMLElement {
     }
 
     this.#submitController = new AbortController();
-    this._internals.form.addEventListener('submit', event => {
-      if (this.#form !== event.target.id) return;
-      this.#convertMultiValue(event);
-    }, { signal: this.#submitController.signal });
+
+    try {
+      this._internals.form.addEventListener('submit', event => {
+        if (this.#form !== event.target.id) return;
+        this.#convertMultiValue(event);
+      }, { signal: this.#submitController.signal });
+    } catch (error) {
+      throw new Error("a-select: When using convert-multi (convertMulti) a-select must either be a child of a form or have a form (id) assigned via the `form` attribute.", {reason: error});
+    }
   }
 
   /**
@@ -520,7 +574,6 @@ export default class ASelect extends HTMLElement {
 
     setTimeout( () => {
       input.disabled = false;
-      if (this.debug) console.warn(this._internals.form.elements)
       hiddenElems.forEach( elem => {
         elem.remove();
       });
@@ -533,11 +586,11 @@ export default class ASelect extends HTMLElement {
    * @param {HTMLElement | null} selected - The option element that should remain selected.
    */
   #deselectOthers(selected) {
-    Array.from(this.#optionContainer.children).map( item => {
+    Array.from(this.#optionContainer.children).forEach( item => {
       if (item.dataset.type === 'optgroup') {
-        Array.from(item.children).map(subItem => {
+        Array.from(item.children).forEach( subItem => {
           if (subItem !== selected) subItem.removeAttribute('aria-selected');
-        });
+        })
       } else {
         if (item !== selected) item.removeAttribute('aria-selected');
       }
@@ -628,10 +681,9 @@ export default class ASelect extends HTMLElement {
       beforeOption = this.#select.children[before];
     } else {
       beforeDiv = this.#optionContainer.querySelector(`[data-value="${before}"]`);
-      beforeOption = [...this.#select.children].reduce( (found, opt) => {
+      beforeOption = Array.from(this.#select.children).find( opt => {
         const val = opt.value || opt.label;
-        if (val === before) return found || opt;
-        return found;
+        return val === before;
       });
     }
 
@@ -660,6 +712,7 @@ export default class ASelect extends HTMLElement {
    * @param {number} offset - The amount to move the focus index (+/-).
    */
   #moveFocus(offset) {
+    if (this.#items.length === 0) return;
     this.#idx = (this.#idx + offset + this.#items.length) % this.#items.length;
     this.#highlight(this.#idx);
   }
@@ -670,12 +723,13 @@ export default class ASelect extends HTMLElement {
    * @private
    */
   #populateSelect(replace = true) {
-    if (replace) this.#select.innerHTML = "";
+    if (replace) this.#select.replaceChildren();
+
     // on first run, get items from this.children.
     // but when disconnected/reconnected, this.children is empty so get items from this.#optionContainer.children
     this.#items = (this.children.length) ? Array.from(this.children) : Array.from(this.#optionContainer.children);
     this.#items.forEach( item => {
-      if (!item instanceof HTMLOptionElement || !item instanceof HTMLOptGroupElement) {
+        if (!(item instanceof HTMLOptionElement) && !(item instanceof HTMLOptGroupElement)) {
         console.error(`a-select: Skipping option. Option items must be either "option" or "optgroup". This item is a ${item.localName}`, this);
       } else {
         if (this.#value.includes(item.value)) item.selected = true;
@@ -695,19 +749,18 @@ export default class ASelect extends HTMLElement {
    * @private
    */
   #setOptions(replace = true) {
-    if (replace) this.#optionContainer.innerHTML = "";
+    if (replace) this.#optionContainer.replaceChildren();
     const div = document.createElement('div');
     this.#items.forEach( item => {
       let label;
       const div_a = div.cloneNode();
 
       if (item instanceof HTMLOptionElement) {
-        div_a.innerHTML = item.innerHTML;
+        div_a.append(...Array.from(item.cloneNode(true).childNodes));
         div_a.dataset.value = item.value;
       } else if (item instanceof HTMLOptGroupElement) {
-
-        // optgroup element
         div_a.dataset.type = 'optgroup';
+
         if (item.hasAttribute('label')) {
           label = document.createElement('strong');
           label.textContent = item.getAttribute('label');
@@ -717,7 +770,7 @@ export default class ASelect extends HTMLElement {
         for (const opt of item.children) {
           if (opt instanceof HTMLOptionElement) {
             const div_b = div.cloneNode();
-            div_b.innerHTML = opt.innerHTML;
+            div_b.append(...Array.from(opt.cloneNode(true).childNodes));
             div_b.dataset.value = opt.value;
 
             for (const attr of opt.attributes) {
@@ -726,7 +779,7 @@ export default class ASelect extends HTMLElement {
 
             div_a.append(div_b);
           } else if (label) {
-            label.prepend(opt.cloneNode());
+            label.prepend(opt.cloneNode(true));
           }
         }
       }
@@ -734,6 +787,7 @@ export default class ASelect extends HTMLElement {
       for (const attr of item.attributes) {
         div_a.setAttribute(attr.name, attr.value);
       }
+
       if (this.#multiple) div_a.tabIndex = 0;
       this.#optionContainer.append(div_a);
     });
@@ -743,7 +797,7 @@ export default class ASelect extends HTMLElement {
 
   #setSelected(value, toggle = true) {
     if (value === null || value === undefined) {
-      this.#select.value = "";
+      this.#select.value = null;
       this.#deselectOthers(null);
       return;
     }
@@ -811,8 +865,8 @@ export default class ASelect extends HTMLElement {
     if (this.#disabled) return;
     this.#value = Array.from(this.#select.selectedOptions).map( o => o.value);
     this._internals.setFormValue(this.value);
-    globalThis[abindUpdate]?.(this, 'value', this.#value);
     this.#setValidity(this.#getInvalidStates());
+    globalThis[abindUpdate]?.(this, 'value', this.#value);
   }
 
   /**
@@ -918,8 +972,8 @@ export default class ASelect extends HTMLElement {
   }
 
   /**
-   * Reports whether the form control is valid without throwing an exception.
-   * @returns {boolean} True if valid, false otherwise.
+   * Reports whether the form control will participate in form validation.
+   * @returns {boolean}
    */
   reportValidity() {
     return this.#select.reportValidity();
@@ -940,24 +994,6 @@ export default class ASelect extends HTMLElement {
       return false;
     }
   }
-
-  /*setSelected(value) {
-    const div = this.#optionContainer.querySelector(`[data-value="${value}"]`);
-    const option = [...this.#select.children].reduce( (found, opt) => {
-        const val = opt.value || opt.label;
-        if (val === value) return found || opt;
-        return found;
-      });
-
-    if (!div || !option) {
-      console.error(`Cound not find option with value (${value}) to select.`);
-      return;
-    }
-
-    div.toggleAttribute('aria-selected', true);
-    this.#deselectOthers(div);
-    option.selected = true;
-  }*/
 
   // --- Getters / Setters ---
 
@@ -1037,7 +1073,7 @@ export default class ASelect extends HTMLElement {
    * Note: This is a direct getter returning an existing property, not a setter.
    * @type {HTMLOptionsCollection}
    */
-  get options() { this.#select.options }
+  get options() { return this.#select.options }
 
   /**
    * Gets or sets whether the element requires a value to be selected (HTML5 required attribute).
@@ -1073,18 +1109,8 @@ export default class ASelect extends HTMLElement {
    * Updates the HTML 'value' attribute (comma-separated string) when setting.
    * @type {string | string[]}
    */
-  get value() { return this.#value.join(',') }
-  set value(value) {
-    if (value !== null) {
-      value = value.split(',').map( v => v.trim() );
-    }
-
-    this.#value = value;
-    if (this.#connected) {
-      this.#setSelected(this.#value, false);
-      this.#setValue();
-    }
-  }
+  get value() { return (this.#value == null) ? null : this.#value.join(',') }
+  set value(value) { this.setAttribute('value', value) }
 
   /**
    * Gets the current values from the internal <select> options as an array of strings.

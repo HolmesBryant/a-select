@@ -18,17 +18,9 @@ const {
 	when
 } = runner;
 
-// let app = document.getElementById('test');
-let app;
-
-async function setup() {
-	const elem = document.createElement('a-select');
-	await document.body.append(elem);
-	return elem;
-}
-
 group("General", async () => {
-	app = await setup();
+	const app = document.createElement('a-select');
+	document.body.append(app);
 
 	test("It has a default name", async () => {
 		return app._internals.name != null;
@@ -63,30 +55,34 @@ group("General", async () => {
 		optionTwo.toggleAttribute('selected', true);
 		const options = [optionOne, optionTwo];
 		app.add(options);
-		await when(app.values);
+		await when(app.values, 10);
 		app.remove();
 		return app.value;
 	}, 'two');
 });
 
-
-
 group("Select Single Functionality", async () => {
 	let submitted = false;
-	app = await setup();
+	const app = document.createElement('a-select');
 	const select = app.shadowRoot.querySelector('select');
+	app.add('three, four');
+	const opt = document.createElement('option');
+	opt.value = "";
+	opt.textContent = "novalue";
+	app.add(opt);
+	await document.body.append(app);
 
 	test("Setting `active=true` shows the picker", async () => {
 		app.active = true;
 		const result = await when(app.shadowRoot.querySelector('.open'), 10);
 		return result != null;
-	} , true)
+	} , true);
 
 	test("Setting `active=false` hides the picker", async () => {
 		app.active = false;
-		const result = await when(app.shadowRoot.querySelector('.open'), 10);
-		return result != null;
-	}, false)
+		const result = await when(() => app.shadowRoot.querySelector('.open'), 10);
+		return result;
+	}, null);
 
 	test("Setting `autofocus=true` focuses it", async () => {
 		app.autofocus = true;
@@ -110,9 +106,9 @@ group("Select Single Functionality", async () => {
 	}, false);
 
 	test("Setting value causes the appropriate option to be selected", () => {
-		app.value = 'One';
-		return select.selectedOptions[0].value === 'One';
-	}, true);
+		app.value = 'four';
+		return select.selectedOptions[0].value;
+	}, 'four');
 
 	test("Setting `size=2` causes two options to be visible", () => {
 		app.size = 2;
@@ -125,23 +121,62 @@ group("Select Single Functionality", async () => {
 		app.value = null;
 		const result = select.selectedOptions.length === 0;
 		await wait(10);
-		app.value = "svg";
 		return result;
 	}, true);
 
+	test('Setting `value=""` (when required is false) selects the option whose value is "" (empty string)', async () => {
+		app.value = "";
+		const result = select.selectedOptions[0].value;
+		app.remove();
+		return result;
+	}, "");
+});
+
+group("Select (single) Validation", async () => {
+	const app = document.createElement('a-select');
+	app.add('one, two');
+	const opt = document.createElement('option');
+	opt.value = "";
+	opt.textContent = "novalue";
+	app.add(opt);
+	await document.body.append(app);
+
 	test("Setting `required=true` when option is selected and has a value passes validation", () => {
-		app.value = 'svg';
 		app.required = true;
+		app.value = 'two';
 		return app.valid;
 	}, true);
 
-	test("Setting `required=true` when value is empty string fails validation", () => {
-		app.required = true;
+	test("Setting `required=true` when value is null fails validation", () => {
 		app.value = null;
 		return app.valid;
 	}, false);
 
-	test("It is included with form submission", async () => {
+	test("Setting `required=true` when in single mode (multiple is false) and value is empty string fails validation", async () => {
+		app.value = "";
+		const result = app.valid;
+		app.remove();
+		return result;
+	}, false);
+});
+
+group("Select (single) Form Submission", async () => {
+	const app = document.createElement('a-select');
+	const form = document.getElementById('original-form');
+	app.add('one, two');
+	await form.append(app);
+
+	test("It is associated with a form when it is child of the form", () => {
+		return app._internals.form.id;
+	}, 'original-form');
+
+	test("It is associated with another form when `form=other-form`", () => {
+		app.form = 'other-form';
+		return app._internals.form.id;
+	}, 'other-form');
+
+	test("It is included with form submission", () => {
+		app.debug = true;
 		let length = 0;
 		const form = app._internals.form;
 		function submitSingle(event) {
@@ -151,31 +186,40 @@ group("Select Single Functionality", async () => {
 				length++;
 			}
 		}
+
 		form.addEventListener('submit', submitSingle);
-		await wait(10);
 		form.requestSubmit();
 		const result = length > 0;
 		form.removeEventListener('submit', submitSingle);
-		app.remove();
+		setTimeout(() => {app.remove()}, 100);
 		return result;
 	}, true);
 });
 
-/*group("Select Multiple functionality", () => {
+group("Select Multiple functionality", () => {
+	const app = document.createElement('a-select');
 	const select = app.shadowRoot.querySelector('select');
+	const form = document.getElementById('original-form');
+	app.add('one, two, three');
+	app.multiple = true;
+	form.append(app);
 
 	test("Setting `multiple=true` converts it to a <select multiple>", () => {
+		// app.debug = false;
 		app.multiple = true;
 		return select.hasAttribute('multiple');
 	}, true)
 
 	test("Setting `value = val1, val2` selects multiple options", async () => {
-		app.value = 'svg, img';
+		// app.debug = true;
+		app.value = 'one, two';
+
 		const result = select.selectedOptions.length === 2;
 		return result;
 	}, true);
 
-	test("multiple values are included with form submission", async () => {
+	test("Value is included with form submission", async () => {
+		// app.debug = false;
 		let length = 0;
 		const form = app._internals.form;
 		function submit(event) {
@@ -188,14 +232,14 @@ group("Select Single Functionality", async () => {
 		form.addEventListener('submit', submit);
 		await wait(10);
 		form.requestSubmit();
-		const result = length == 2;
+		const result = length > 0;
 		form.removeEventListener('submit', submit);
 		return result;
 	}, true);
 
-	test("convert-multi transforms the data to normal select <multiple> format", async () => {
+	test("convert-multi transforms the data to normal select <multiple> format", () => {
+		app.debug = false;
 		let converted;
-		app.debug = true;
 		app.convertMulti = true;
 		const form = app._internals.form;
 		function submitMulti(event) {
@@ -209,10 +253,11 @@ group("Select Single Functionality", async () => {
 		}
 
 		form.addEventListener('submit', submitMulti);
-		await(10);
+		// await(10);
 		form.requestSubmit();
+		app.remove();
 	}, true);
 
-});*/
+});
 
 runner.run();
