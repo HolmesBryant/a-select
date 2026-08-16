@@ -13,7 +13,7 @@ a-select {
 }
 
 @media (prefers-color-scheme: dark) {
-	:host {
+	a-select {
 		--text-color: white;
 		--background: rgb(40,40,40);
 		--border-color: dimgray;

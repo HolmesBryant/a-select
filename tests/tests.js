@@ -2,7 +2,7 @@ import ATestRunner from './ATestrunner.min.js';
 import '../src/a-select.js';
 
 const runner = new ATestRunner(import.meta.url)
-// runner.output = "#results";
+runner.output = "test-results";
 
 const {
 	benchmark,
@@ -23,28 +23,28 @@ group("General", async () => {
 	document.body.append(app);
 
 	test("It has a default name", async () => {
-		return app._internals.name != null;
+		return app.internals.name != null;
 	}, true);
 
 	test("Setting `name` to 'foo'", async () => {
 		app.name = 'foo';
-		return app._internals.name;
+		return app.internals.name;
 	}, 'foo');
 
 	test("When it is a child of a form, the form adopts it", async () => {
 		const form = document.getElementById('original-form');
 		await form.append(app);
-		return app._internals.form != null;
+		return app.internals.form != null;
 	}, true);
 
 	test("Setting `form='other-form'` associates it with other-form", () => {
 		app.form = 'other-form';
-		return app._internals.form?.id;
+		return app.internals.form?.id;
 	}, 'other-form');
 
 	test("Removing the `form` attribute resets the associated form", () => {
 		app.removeAttribute('form');
-		return app._internals.form.id;
+		return app.internals.form.id;
 	}, 'original-form');
 
 	test("When an option has `selected` attribute, it is selected", async () => {
@@ -167,18 +167,18 @@ group("Select (single) Form Submission", async () => {
 	await form.append(app);
 
 	test("It is associated with a form when it is child of the form", () => {
-		return app._internals.form.id;
+		return app.internals.form.id;
 	}, 'original-form');
 
 	test("It is associated with another form when `form=other-form`", () => {
 		app.form = 'other-form';
-		return app._internals.form.id;
+		return app.internals.form.id;
 	}, 'other-form');
 
 	test("It is included with form submission", () => {
 		app.debug = true;
 		let length = 0;
-		const form = app._internals.form;
+		const form = app.internals.form;
 		function submitSingle(event) {
 			event.preventDefault();
 			const data = new FormData(form);
@@ -201,17 +201,16 @@ group("Select Multiple functionality", () => {
 	const select = app.shadowRoot.querySelector('select');
 	const form = document.getElementById('original-form');
 	app.add('one, two, three');
+	app.name = "foo";
 	app.multiple = true;
 	form.append(app);
 
-	test("Setting `multiple=true` converts it to a <select multiple>", () => {
-		// app.debug = false;
+	test("Setting `multiple=true` converts it to a select multiple", () => {
 		app.multiple = true;
 		return select.hasAttribute('multiple');
 	}, true)
 
 	test("Setting `value = val1, val2` selects multiple options", async () => {
-		// app.debug = true;
 		app.value = 'one, two';
 
 		const result = select.selectedOptions.length === 2;
@@ -219,45 +218,71 @@ group("Select Multiple functionality", () => {
 	}, true);
 
 	test("Value is included with form submission", async () => {
-		// app.debug = false;
-		let length = 0;
-		const form = app._internals.form;
+		app.debug = false;
+		let content;
+		const form = app.internals.form;
 		function submit(event) {
 			event.preventDefault();
 			const data = new FormData(form);
-			for (const entry of data.entries()) {
-				length++;
-			}
+			content = JSON.stringify(Array.from(data.entries()));
 		}
+
 		form.addEventListener('submit', submit);
 		await wait(10);
 		form.requestSubmit();
-		const result = length > 0;
 		form.removeEventListener('submit', submit);
-		return result;
-	}, true);
+		app.remove();
+		return content;
+	}, '[["foo","one,two"]]');
+});
 
-	test("convert-multi transforms the data to normal select <multiple> format", () => {
-		app.debug = false;
-		let converted;
-		app.convertMulti = true;
-		const form = app._internals.form;
-		function submitMulti(event) {
+group("convertMulti functionality", async () => {
+	const form = document.createElement('form');
+	const app = document.createElement('a-select');
+	form.id = "convert-multi-form";
+	app.multiple = true;
+	app.convertMulti = true;
+	app.add('one, two, three');
+	document.body.append(form);
+	await form.append(app);
+	app.value = "two, three";
+
+	await test("convert-multi transforms the data to normal select <multiple> format", async () => {
+		app.name = "foo";
+		let content;
+
+		function submit(event) {
+			if (app.name !== 'foo') return;
 			event.preventDefault();
-			setTimeout(() => {
-				const data = new FormData(form);
-				for (const entry of data.entries()) {
-					console.log(entry);
-				}
-			});
+			const data = new FormData(form);
+			content = JSON.stringify(Array.from(data.entries()));
 		}
 
-		form.addEventListener('submit', submitMulti);
-		// await(10);
+		form.addEventListener('submit', submit);
 		form.requestSubmit();
-		app.remove();
-	}, true);
+		form.removeEventListener('submit', submit);
+		return content;
+	},'[["foo","two"],["foo","three"]]');
 
+	await test("Setting `convertMulti=false` reverts form data to default format", async () => {
+		let content;
+		app.name = "bar";
+		app.convertMulti = false;
+
+		function submit(event) {
+			if (app.name !== 'bar') return;
+			event.preventDefault();
+			const data = new FormData(form);
+			content = JSON.stringify(Array.from(data.entries()));
+		}
+
+		await when( () => app.internals.form.bar.disabled === false);
+		form.addEventListener('submit', submit);
+		form.requestSubmit();
+		form.removeEventListener('submit', submit);
+		app.remove();
+		return content;
+	}, '[["bar","two,three"]]');
 });
 
 runner.run();

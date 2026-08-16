@@ -1,4 +1,4 @@
-# a-select  - Form-Associated Select Element with Image Support
+# a-select - Form-Associated Select Element with Image Support
 
 **ASelect** (`<a-select>`) is a custom web component that extends the native HTML `<select>` element. It provides an enhanced dropdown interface, supports rendering options as images (or any rich content), and fully integrates with the browser's form submission system via the Form Associated Custom Elements API.
 

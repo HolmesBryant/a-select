@@ -128,6 +128,13 @@ export default class ASelect extends HTMLElement {
   #connected = false;
 
   /**
+   * ElementInternals instance used for form integration
+   * @private
+   * @type {ElementInternals}
+   */
+  #internals;
+
+  /**
    * Track focus index for keyboard navigation
    * @private
    * @type {number}
@@ -216,9 +223,9 @@ export default class ASelect extends HTMLElement {
 
   constructor() {
     super();
-    this._internals = this.attachInternals();
-    this._internals.name = this.name;
-    this._internals.setFormValue(this.value);
+    this.#internals = this.attachInternals();
+    this.#internals.name = this.name;
+    this.#internals.setFormValue(this.value);
     this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.shadowRoot.adoptedStyleSheets = [styles];
     this.shadowRoot.append(ASelect.template.content.cloneNode(true));
@@ -261,13 +268,14 @@ export default class ASelect extends HTMLElement {
 
       case 'convert-multi':
         this.#convertMulti = this.hasAttribute('convert-multi');
-        if (this.#connected) {
-          if (this.#convertMulti) {
-            this.#addSubmitListener();
-          } else {
+        if (!this.#connected) return;
+
+        if (this.#convertMulti) {
+          this.#addSubmitListener();
+        } else {
+          if (this.#submitController) {
             this.#submitController.abort();
             this.#submitController = null;
-            this.#setValue();
           }
         }
         break;
@@ -283,7 +291,7 @@ export default class ASelect extends HTMLElement {
 
       case 'name':
         this.#name = newval;
-        this._internals.name = newval;
+        this.#internals.name = newval;
         break;
 
       case 'form':
@@ -385,7 +393,7 @@ export default class ASelect extends HTMLElement {
     if (!this.#name) this.name = rando;
 
     if (!this.#form) {
-      const form = this._internals.form;
+      const form = this.#internals.form;
       if (form && !form.id) form.id = rando;
       this.#form = form?.id;
     }
@@ -501,7 +509,7 @@ export default class ASelect extends HTMLElement {
       return;
     }
 
-    if (!this._internals.form) {
+    if (!this.#internals.form) {
       console.error(`a-select.addResetListener: A form with id ${this.#form} was found but ElementInternals.form is null. Aborting operation.`);
       if (this.debug) console.trace(this.#form);
       return;
@@ -513,7 +521,7 @@ export default class ASelect extends HTMLElement {
     }
 
     this.#resetController = new AbortController();
-    this._internals.form.addEventListener('reset', event => {
+    this.#internals.form.addEventListener('reset', event => {
       this.#setSelected(this.#originalValue);
       this.#setValue(this.getAttribute('value'));
     }, { signal: this.#resetController.signal });
@@ -533,7 +541,7 @@ export default class ASelect extends HTMLElement {
     this.#submitController = new AbortController();
 
     try {
-      this._internals.form.addEventListener('submit', event => {
+      this.#internals.form.addEventListener('submit', event => {
         if (this.#form !== event.target.id) return;
         this.#convertMultiValue(event);
       }, { signal: this.#submitController.signal });
@@ -550,16 +558,16 @@ export default class ASelect extends HTMLElement {
    */
   #convertMultiValue(event) {
     event.preventDefault();
-    const input = this._internals.form[this.#name];
+    const input = this.#internals.form[this.#name];
     if (!input) {
-      console.error(`a-select is not associated with the form "${this._internals.form.id}"`);
-      this._internals.form.requestSubmit();
+      console.error(`a-select.#convertMultiValue(): a-select is not associated with the form "${this.#internals.form.id}"`, this);
+      this.#internals.form.requestSubmit();
       return;
     }
 
     const hidden = document.createElement('input');
     const hiddenElems = [];
-    this._internals.setFormValue('');
+    this.#internals.setFormValue('');
     input.disabled = true;
     hidden.type = 'hidden';
     hidden.name = this.#name;
@@ -567,17 +575,19 @@ export default class ASelect extends HTMLElement {
       const hidden_ = hidden.cloneNode('true');
       hidden_.value = val;
       hiddenElems.push(hidden_);
-      this._internals.form.append(hidden_);
+      this.#internals.form.append(hidden_);
     });
 
-    this._internals.form.requestSubmit();
+    const data = [...this.#internals.form.elements];
+    this.#internals.form.requestSubmit();
 
     setTimeout( () => {
       input.disabled = false;
       hiddenElems.forEach( elem => {
         elem.remove();
       });
-    });
+      this.#setValue();
+    }, 100);
   }
 
   /**
@@ -853,7 +863,7 @@ export default class ASelect extends HTMLElement {
    * @param {HTMLElement} [validationMessageTarget] - Element to associate the message with.
    */
   #setValidity(flags = {}) {
-    this._internals.setValidity(flags, this.#select.validationMessage, this);
+    this.#internals.setValidity(flags, this.#select.validationMessage, this);
   }
 
   /**
@@ -864,7 +874,7 @@ export default class ASelect extends HTMLElement {
   #setValue() {
     if (this.#disabled) return;
     this.#value = Array.from(this.#select.selectedOptions).map( o => o.value);
-    this._internals.setFormValue(this.value);
+    this.#internals.setFormValue(this.value);
     this.#setValidity(this.#getInvalidStates());
     globalThis[abindUpdate]?.(this, 'value', this.#value);
   }
@@ -1049,6 +1059,8 @@ export default class ASelect extends HTMLElement {
   get form() { return this.#form }
   set form(value) { this.setAttribute('form', value) }
 
+  get internals() { return this.#internals}
+
   /**
    * Gets or sets the name of the element (used in form submissions).
    * Updates both internal state and HTML 'name' attribute when setting.
@@ -1102,7 +1114,7 @@ export default class ASelect extends HTMLElement {
     this.setAttribute('size', value);
   }
 
-  get valid() { return this._internals.validity.valid }
+  get valid() { return this.#internals.validity.valid }
 
   /**
    * Gets or sets the current selected value(s) as an array of strings.
