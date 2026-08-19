@@ -1,8 +1,12 @@
 # a-select - Form-Associated Select Element with Image Support
 
+
+
 **ASelect** (`<a-select>`) is a custom web component that extends the native HTML `<select>` element. It provides an enhanced dropdown interface, supports rendering options as images (or any rich content), and fully integrates with the browser's form submission system via the Form Associated Custom Elements API.
 
 Built with Shadow DOM and designed for accessibility, it allows you to create beautiful, complex option lists while maintaining native form behavior.
+
+Demo: [https://holmesbryant.github.io/a-select/](https://holmesbryant.github.io/a-select/)
 
 ## Features
 
@@ -164,22 +168,20 @@ Reports validity without throwing an exception. Useful for conditional UI update
 ```html
 <form>
 	<a-select name="country">
-	  <option value="FR">France</option>
-	  <option value="GB">United Kingdom</option>
-	  <option value="US">United States</option>
+	  <option value="FR">
+	  	<img src="img/flag-france.jpg">
+	  	France
+	  </option>
+	  <option value="GB">
+	  	<img src="img/flag-GB.jpg">
+	  	United Kingdom
+	  </option>
+	  <option value="US">
+	  	<img src="img/flag-US.jpg">
+	  	United States
+	  </option>
 	</a-select>
-</form>
-```
 
-```html
-<a-select name="country" form="my-form">
-  <option value="FR">France</option>
-  <option value="GB">United Kingdom</option>
-  <option value="US">United States</option>
-</a-select>
-
-<form id="my-form">
-  <!-- The form will automatically include the selected value -->
   <button type="submit">Submit</button>
 </form>
 ```
@@ -241,7 +243,7 @@ If you need your data to be formatted like a normal `<select multiple>` element,
 
 - Disables the a-select input so it is not submitted.
 
-- Then enables the a-select input and removes the hidden inputs after the form is submitted.
+- Then, after submission, it enables the a-select input and removes the hidden inputs.
 
 This effectively converts the values to the "normal" `<select multiple>` format when the form is submitted.
 
