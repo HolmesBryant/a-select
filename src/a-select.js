@@ -1116,6 +1116,8 @@ export default class ASelect extends HTMLElement {
 
   get valid() { return this.#internals.validity.valid }
 
+  get validity() { return this.#internals.validity }
+
   /**
    * Gets or sets the current selected value(s) as an array of strings.
    * Updates the HTML 'value' attribute (comma-separated string) when setting.
@@ -1130,6 +1132,8 @@ export default class ASelect extends HTMLElement {
    * @type {string[]}
    */
   get values() { return this.#values }
+
+  get willValidate() { return this.#internals.willValidate }
 }
 
 if (!customElements.get('a-select')) customElements.define('a-select', ASelect);
